@@ -47,3 +47,68 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# --- Python-specific ignores ---
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Pytest / coverage
+.cache/
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyright / pylance
+.pyright/
+
+# Pyre type checker
+.pyre/
+
+# VS Code
+.vscode/
+
+# PyInstaller
+*.spec
+
+# pipenv
+Pipfile.lock
+
+# pyenv
+.python-version
+
+# Django stuff:
+*.log
+local_settings.py
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Unit test / test result files
+nosetests.xml
+test*.xml
