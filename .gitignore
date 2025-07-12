@@ -112,3 +112,6 @@ instance/
 # Unit test / test result files
 nosetests.xml
 test*.xml
+
+# Secrets
+.env
