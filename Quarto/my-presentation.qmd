@@ -17,97 +17,79 @@ In this demo presentation we will explore how to use LLMs in Shiny applications.
 # What do you need?
 
 - The means to authenticate. Depending on your provider, you might need an API key (e.g. Anthropic, OpenAI), a token (e.g. Hugging Face), or other authentication methods.
-- Put those credentials in a suitable place (for R: .Renviron, for Python: .env)
+- Put those credentials in a suitable place (for R: `.Renviron`, for Python: `.env`)
 - Install the necessary packages:
-  - For R: `shiny`, `ellmer`
-  - For Python: `shiny`, `chatlas`
+  - For Python: `chatlas`, `shiny`
+  - For R: `ellmer`, `shiny`, `shinychat`, and optionally `bslib`
 - An creative idea for your LLM-powered app!
 
-# Using ellmer
+# What are we building
 
-Some R code:
+We're building an app called DeckCheck: it's your favourite Presentation Rehearsal Buddy.
+
+With DeckCheck, you can upload your Quarto presentation and get tailored feedback!
+
+No more lengthy, boring presentations 🤠.
+
+# Where to start?
+
+1. Talk to an LLM with the help of `chatlas` (Python) and `ellmer` (R)
+2. Get a basic `shiny` app ready
+3. Integrate `chatlas`/`ellmer` in that `shiny` app using a simple chat interface
+4. Build it out to an app where you can upload slides, see metrics about your presentation, and more.
+
+# Talk to an LLM with chatlas
+
+For Python, we can use `chatlas`:
+
+```python
+from chatlas import ChatAnthropic
+
+chat = ChatAnthropic(
+    model="claude-sonnet-4-20250514",
+    system_prompt="You are a presentation coach for data scientists. You give constructive, focused, and practical feedback on titles, structure, and storytelling.",
+)
+
+chat.chat("I'm working on a presentation with the title: 'The Shiny Side of LLMs'. What's your feedback just based on that title?")
+```
+
+# Talk to an LLM with ellmer
+
+For R, we can use `ellmer`:
+
 ```r
 library(ellmer)
 
 chat <- chat_anthropic(
-  model = "claude-sonnet-4",
-  system_prompt = "You are a friendly but terse assistant.",
+    model = "claude-sonnet-4-20250514",
+    system_prompt = "You are a presentation coach for data scientists. You give constructive, focused, and practical feedback on titles, structure, and storytelling."
 )
 
-chat$chat("Teach me some Shiny for R")
+chat$chat("I'm working on a presentation with the title: 'The Shiny Side of LLMs'. What's your feedback just based on that title?")
 ```
 
-# Using chatlas
-
-Some Python code:
-```python
-import chatlas as ctl
-
-chat = ctl.ChatAnthropic(
-    model = "claude-sonnet-4",
-    system_prompt = "You are a friendly but terse assistant.",
-)
-
-chat.chat("Teach me some Shiny for Python")
-```
-
-# Building an app with Shiny
+# Why Shiny?
 
 - Shiny is a web application framework for R and Python that allows you to build interactive web applications.
 - It provides a reactive programming model, making it easy to create dynamic user interfaces and handle user inputs.
-- Perfect for your AI-powered app!
+- Perfect for your LLM-powered app!
 
-# Using Shiny for R
-
-```r
-library(shiny)
-library(bslib)
-
-ui <- page_fluid(
-  theme = bs_theme(bootswatch = "minty"),
-  
-  # App title
-  h1("Simple Shiny demo"),
-  
-  # Create a card
-  card(
-    card_header("Welcome"),
-    p("This is a simple Shiny app using bslib for layout and styling."),
-
-    # Input: Slider
-    textAreaInput("text", "What's your question?"),
-    
-    # Output: echo the text back
-    textOutput("echo")
-  )
-)
-
-server <- function(input, output, session) {
-  # Reactive output
-  output$echo <- renderText({
-    paste("You asked:", input$text)
-  })
-}
-
-shinyApp(ui, server)
-```
-
-# Using Shiny for Python
+# Shiny basics: Python
 
 ```python
 from shiny import App, ui, render
 
 # Define UI
 app_ui = ui.page_fluid(
-    ui.h1("Simple Shiny App"),
+    ui.h1("DeckCheck"),
     
-    # Card with slider
+    # Card with content
     ui.card(
         ui.card_header("Welcome"),
         
         ui.p("This is a basic Shiny for Python application."),
         
-        # Input: Slider
+        # Input: text
         ui.input_text_area("text", "What's your question?"),
         
         # Output: echo text back
@@ -125,6 +107,43 @@ def server(input, output, session):
 app = App(app_ui, server)
 ```
 
+# Shiny basics: R
+
+Tip: combine with `bslib` for fancy looks!
+
+```r
+library(shiny)
+library(bslib)
+
+ui <- page_fluid(
+  theme = bs_theme(bootswatch = "minty"),
+  
+  # App title
+  h1("DeckCheck"),
+  
+  # Create a card
+  card(
+    card_header("Welcome"),
+    p("This is a simple Shiny app using bslib for layout and styling."),
+
+    # Input: text
+    textAreaInput("text", "What's your question?"),
+    
+    # Output: echo the text back
+    textOutput("echo")
+  )
+)
+
+server <- function(input, output, session) {
+  # Reactive output
+  output$echo <- renderText({
+    paste("You asked:", input$text)
+  })
+}
+
+shinyApp(ui, server)
+```
+
 # Where's the magic?
 
 We're here for some AI magic, right? So let's talk to an LLM via our Shiny application!
@@ -132,15 +151,99 @@ We're here for some AI magic, right? So let's talk to an LLM via our Shiny appli
 ![AI Magic](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmZ0cmd1aGZzM3JqdW1zbng0czU2c2RwejNtM25jMW8xdnYzNXVrdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/OlxeZT285uhFydNetO/giphy.gif)
 
 # Shiny and chatlas
-```python
 
+We can add a chat component to our UI with `ui.chat_ui` from `shiny`, and use
+`ChatAnthropic` from `chatlas` to send our messages to Claude.
+With minimal change, our Shiny for Python app is already LLM-powered!
+
+```python
+from shiny import App, ui
+from chatlas import ChatAnthropic
+
+# Define UI
+app_ui = ui.page_fluid(
+    ui.h1("DeckCheck"),
+    # Card with chat component
+    ui.card(
+        ui.card_header("Get started"),
+        ui.p("Ask me anything about your presentation 💡"),
+        # Chat component
+        ui.chat_ui(id="my_chat"),
+    ),
+)
+
+
+# Define server
+def server(input, output, session):
+    chat_component = ui.Chat(id="my_chat")
+
+    chat = ChatAnthropic(
+        model="claude-sonnet-4-20250514",
+        system_prompt="You are a presentation coach for data scientists. You give constructive, focused, and practical feedback on titles, structure, and storytelling.",
+    )
+
+    @chat_component.on_user_submit
+    async def handle_user_input(user_input: str):
+        response = await chat.stream_async(user_input)
+        await chat_component.append_message_stream(response)
+
+
+# Create app
+app = App(app_ui, server)
 ```
 
-# Shiny and ellmer
-```r
+# Shiny, shinychat and ellmer
+We can add a chat component to our UI with `chat_mod_ui` from `shinychat`, and use
+`chat_anthropic` from `ellmer` to send our messages to Claude.
+With minimal change, our Shiny for R app is already LLM-powered!
 
+```r
+library(shiny)
+library(bslib)
+library(ellmer)
+library(shinychat)
+
+ui <- page_fluid(
+  theme = bs_theme(bootswatch = "minty"),
+
+  # App title
+  h1("DeckCheck"),
+
+  # Create a card
+  card(
+    card_header("Get started"),
+    p("Ask me anything about your presentation 💡"),
+
+    # Chat component
+    chat_mod_ui("chat_component")
+  )
+)
+
+server <- function(input, output, session) {
+  chat <- chat_anthropic(
+    model = "claude-sonnet-4-20250514",
+    system_prompt = "You are a presentation coach for data scientists. 
+  You give constructive, focused, and practical feedback on titles, structure, and storytelling."
+  )
+
+  chat_mod_server("chat_component", chat)
+}
+
+shinyApp(ui, server)
 ```
 
 # User experience
 
-When using an LLM in a Shiny application, it is important to consider the user experience. The LLM should enhance the application, not overwhelm it. This means that theLLMI responses should be concise and relevant to the user's query. Additionally, it is crucial to handle errors gracefully, providing users with helpful feedback if the LLM cannot generate a response or if there are issues with the API. Therefore, implementing proper error handling and fallback mechanisms is essential.
+When using an LLM in a Shiny application, it is important to consider the user experience. The LLM should enhance the application, not overwhelm it. This means that the LLM's responses should be concise and relevant to the user's query. Additionally, it is crucial to handle errors gracefully, providing users with helpful feedback if the LLM cannot generate a response or if there are issues with the API. Therefore, implementing proper error handling and fallback mechanisms is essential.
+
+# Up next
+
+Of course we're not ready yet. Next steps include:
+
+- Adding a file upload button
+- Reading the content of the presentation
+- Crafting our prompt
+- Extract information in a structured way
+- Display that information in a visually appealing manner (value boxes, use of colours, icons, functionality to export the feedback...
+
+# Thank you!

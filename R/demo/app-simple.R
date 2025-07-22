@@ -5,7 +5,7 @@ ui <- page_fluid(
   theme = bs_theme(bootswatch = "minty"),
 
   # App title
-  h1("Simple Shiny demo"),
+  h1("DeckCheck"),
 
   # Create a card
   card(
