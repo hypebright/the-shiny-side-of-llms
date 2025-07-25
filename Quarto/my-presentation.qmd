@@ -148,7 +148,7 @@ shinyApp(ui, server)
 
 We're here for some AI magic, right? So let's talk to an LLM via our Shiny application!
 
-![AI Magic](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmZ0cmd1aGZzM3JqdW1zbng0czU2c2RwejNtM25jMW8xdnYzNXVrdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/OlxeZT285uhFydNetO/giphy.gif)
+![Magic](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmZ0cmd1aGZzM3JqdW1zbng0czU2c2RwejNtM25jMW8xdnYzNXVrdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/OlxeZT285uhFydNetO/giphy.gif)
 
 # Shiny and chatlas
 
