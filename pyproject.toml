@@ -8,5 +8,6 @@ dependencies = [
     "anthropic>=0.57.1",
     "chatlas>=0.9.1",
     "dotenv>=0.9.9",
+    "pydantic>=2.11.7",
     "shiny>=1.4.0",
 ]
