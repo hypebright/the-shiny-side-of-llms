@@ -1,7 +1,11 @@
+from dotenv import load_dotenv
 from chatlas import ChatAnthropic, interpolate_file
 import subprocess
 from pathlib import Path
 from pydantic import BaseModel, Field
+from typing import Annotated, Optional
+
+load_dotenv()  # Loads key from the .env file
 
 chat = ChatAnthropic(
     model="claude-sonnet-4-20250514",
@@ -54,72 +58,69 @@ prompt_complete = interpolate_file(
     },
 )
 
+# chat.chat(prompt_complete)
+
 
 # Define data structure to extract from the input
-class ScoreWithJustification(BaseModel):
-    score: int = Field(..., ge=0, le=10, description="Score from 1 to 10.")
-    justification: str = Field(
-        ..., description="Brief explanation justifying the score."
-    )
+ScoreType = Annotated[int, Field(ge=0, le=10)]
+PercentType = Annotated[float, Field(ge=0.0, le=100.0)]
+MinutesType = Annotated[int, Field(ge=0)]
+SlideCount = Annotated[int, Field(ge=0)]
 
 
-class SuggestedImprovements(BaseModel):
-    pacing: str | None = Field(
+class ScoringCategory(BaseModel):
+    score: ScoreType = Field(..., description="Score from 1–10.")
+    justification: str = Field(..., description="Brief explanation of the score.")
+    improvements: Optional[str] = Field(
         None,
-        description="Suggestions for improving pacing and structure: e.g. slides where pacing might be too fast or too slow based on the content density. Suggestions include slides that can be combined or split.",
+        description="Concise, actionable improvements, mentioning slide numbers if applicable.",
     )
-    visual_design: str | None = Field(
-        None,
-        description="Suggestions for improving visual clarity or design: e.g. flag slides that are too text-heavy or cluttered. Includes recommendations for slide redesign like splitting text, adding visuals, or adding bullet points.",
-    )
-    storytelling: str | None = Field(
-        None,
-        description="Suggestions for improving storytelling or logical flow: e.g. if the presentation can be improved by adding a motivating opening, summarizing key points before transitions, and a clear closure.",
-    )
-    consistency: str | None = Field(
-        None,
-        description="Suggestions for improving consistency of style and structure: e.g. sudden shifts in slide formatting, tone, and visual elements that feel unintentional.",
-    )
-    engagement: str | None = Field(
-        None,
-        description="Suggestions to make the presentation more engaging: e.g. if the presentation can be improved by adding interactive elements like questions, polls and demos, while keeping the time constraint in mind.",
-    )
-    accessibility: str | None = Field(
-        None,
-        description="Suggestions for accessibility: e.g. slides with small text, poor color contrast, or a visual overload.",
+    score_after_improvements: ScoreType = Field(
+        ..., description="Estimated score after suggested improvements."
     )
 
 
 class DeckAnalysis(BaseModel):
     presentation_title: str = Field(..., description="The presentation title.")
-    total_slides: int = Field(..., ge=0, description="Total number of slides.")
-    percent_with_code: float = Field(
-        ...,
-        ge=0.0,
-        le=100.0,
-        description="Percentage of slides containing code blocks.",
-    )
-    percent_with_images: float = Field(
-        ..., ge=0.0, le=100.0, description="Percentage of slides containing images."
-    )
-    estimated_duration_minutes: int = Field(
-        ...,
-        ge=0,
-        description="Estimated presentation length in minutes, assuming ~1 minute per text slide and 2–3 minutes per code or image-heavy slide).",
-    )
-    clarity_score: ScoreWithJustification = Field(
-        ..., description=" Clarity of content and concise explanation."
-    )
+    total_slides: SlideCount
+    percent_with_code: PercentType
+    percent_with_images: PercentType
+    estimated_duration_minutes: MinutesType
     tone: str = Field(
-        ...,
-        description="Brief description of the presentation tone (e.g., informal, technical, playful).",
+        ..., description="Brief description of the tone of the presentation."
     )
-    relevance_for_audience: ScoreWithJustification = Field(
-        ..., description="Relevance for intended audience and concise explanation."
-    )
-    suggested_improvements: SuggestedImprovements = Field(
+
+    clarity: ScoringCategory = Field(
         ...,
-        description="Improvement suggestions, or None per category if no improvements are needed.",
+        description="Evaluate how clearly the ideas are communicated. Are the explanations easy to understand? Are terms defined when needed? Is the key message clear?",
+    )
+    relevance: ScoringCategory = Field(
+        ...,
+        description="Assess how well the content matches the audience’s background, needs, and expectations. Are examples, depth of detail, and terminology appropriate for the audience type?",
+    )
+    visual_design: ScoringCategory = Field(
+        ...,
+        description="Judge the visual effectiveness of the slides. Are they readable, visually balanced, and not overcrowded with text or visuals? Is layout used consistently?",
+    )
+    engagement: ScoringCategory = Field(
+        ...,
+        description="Estimate how likely the presentation is to keep attention. Are there moments of interactivity, storytelling, humor, or visual interest that invite focus?",
+    )
+    pacing: ScoringCategory = Field(
+        ...,
+        description="Analyze the distribution of content across slides. Are some slides too dense or too light? ",
+    )
+    structure: ScoringCategory = Field(
+        ...,
+        description="Review the logical flow of the presentation. Is there a clear beginning, middle, and end? Are transitions between topics smooth? Does the presentation build toward a conclusion?",
+    )
+    concistency: ScoringCategory = Field(  # spelling kept as-is
+        ...,
+        description="Evaluatue whether the presentation is consistent when it comes to formatting, tone, and visual elements. Are there any elements that feel out of place?",
+    )
+    accessibility: ScoringCategory = Field(
+        ...,
+        description="Consider how accessible the presentation would be for all viewers, including those with visual or cognitive challenges. Are font sizes readable? Is there sufficient contrast? Are visual elements not overwhelming?",
     )
 
 

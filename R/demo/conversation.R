@@ -51,67 +51,76 @@ prompt_complete <- interpolate_file(
   markdown = markdown_content
 )
 
-# Type specification
-type_suggested_improvements <- type_object(
-  pacing = type_string(
-    description = "Suggestions for improving pacing and structure: e.g. slides where pacing might be too fast or too slow based on the content density. Suggestions include slides that can be combined or split.",
+#chat$chat(prompt_complete)
+
+# Reusable scoring category
+type_scoring_category <- type_object(
+  score = type_integer(
+    description = "Score from 1 to 10."
+  ),
+  justification = type_string(
+    description = "Brief explanation of the score."
+  ),
+  improvements = type_string(
+    description = "Concise, actionable improvements, mentioning slide numbers if applicable.",
     required = FALSE
   ),
-  visual_design = type_string(
-    description = "Suggestions for improving visual clarity or design: e.g. flag slides that are too text-heavy or cluttered. Includes recommendations for slide redesign like splitting text, adding visuals, or adding bullet points.",
-    required = FALSE
-  ),
-  storytelling = type_string(
-    description = "Suggestions for improving storytelling or logical flow: e.g. if the presentation can be improved by adding a motivating opening, summarizing key points before transitions, and a clear closure.",
-    required = FALSE
-  ),
-  consistency = type_string(
-    description = "Suggestions for improving consistency of style and structure: e.g. sudden shifts in slide formatting, tone, and visual elements that feel unintentional.",
-    required = FALSE
-  ),
-  engagement = type_string(
-    description = "Suggestions to make the presentation more engaging: e.g. if the presentation can be improved by adding interactive elements like questions, polls and demos, while keeping the time constraint in mind.",
-    required = FALSE
-  ),
-  accessibility = type_string(
-    description = "Suggestions for accessibility: e.g. slides with small text, poor color contrast, or a visual overload.",
-    required = FALSE
+  score_after_improvements = type_integer(
+    description = "Estimated score after suggested improvements."
   )
 )
 
-type_slide_analysis <- type_object(
+# Top-level deck analysis object
+type_deck_analysis <- type_object(
   presentation_title = type_string(description = "The presentation title."),
   total_slides = type_integer(description = "Total number of slides."),
   percent_with_code = type_number(
-    description = "Percentage of slides containing code blocks."
+    description = "Percentage of slides containing code blocks (0–100)."
   ),
   percent_with_images = type_number(
-    description = "Percentage of slides containing images."
+    description = "Percentage of slides containing images (0–100)."
   ),
   estimated_duration_minutes = type_integer(
-    description = "Estimated presentation length in minutes, assuming ~1 minute per text slide and 2–3 minutes per code or image-heavy slide)."
-  ),
-  clarity_score = type_object(
-    .description = "Clarity score and justification.",
-    score = type_integer(description = "Score from 1 to 10."),
-    justification = type_string(
-      description = "Brief explanation justifying the score."
-    )
+    description = "Estimated presentation length in minutes, assuming ~1 minute per text slide and 2–3 minutes per code or image-heavy slide."
   ),
   tone = type_string(
     description = "Brief description of the presentation tone (e.g., informal, technical, playful)."
   ),
-  relevance_for_audience = type_object(
-    .description = "Relevance for intended audience and concise explanation.",
-    score = type_integer(description = "Score from 1 to 10."),
-    justification = type_string(
-      description = "Brief explanation justifying the score."
-    )
+  clarity = type_array(
+    description = "Evaluate how clearly the ideas are communicated. Are the explanations easy to understand? Are terms defined when needed? Is the key message clear?",
+    type_scoring_category
   ),
-  suggested_improvements = type_suggested_improvements
+  relevance = type_array(
+    description = "Asses how well the content matches the audience’s background, needs, and expectations. Are examples, depth of detail, and terminology appropriate for the audience type?",
+    type_scoring_category
+  ),
+  visual_design = type_array(
+    description = "Judge the visual effectiveness of the slides. Are they readable, visually balanced, and not overcrowded with text or visuals? Is layout used consistently?",
+    type_scoring_category
+  ),
+  engagement = type_array(
+    description = "Estimate how likely the presentation is to keep attention. Are there moments of interactivity, storytelling, humor, or visual interest that invite focus?",
+    type_scoring_category
+  ),
+  pacing = type_array(
+    description = "Analyze the distribution of content across slides. Are some slides too dense or too light? ",
+    type_scoring_category
+  ),
+  structure = type_array(
+    description = "Review the logical flow of the presentation. Is there a clear beginning, middle, and end? Are transitions between topics smooth? Does the presentation build toward a conclusion?",
+    type_scoring_category
+  ),
+  concistency = type_array(
+    description = "Evaluate whether the presentation is consistent when it comes to formatting, tone, and visual elements. Are there any elements that feel out of place?",
+    type_scoring_category
+  ),
+  accessibility = type_array(
+    description = "Consider how accessible the presentation would be for all viewers, including those with visual or cognitive challenges. Are font sizes readable? Is there sufficient contrast? Are visual elements not overwhelming?",
+    type_scoring_category
+  )
 )
 
-chat$chat_structured(prompt_complete, type = type_slide_analysis)
+chat$chat_structured(prompt_complete, type = type_deck_analysis)
 
 # Get tokens and costs for this script
 chat$get_tokens()

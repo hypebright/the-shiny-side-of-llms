@@ -8,22 +8,24 @@ Please extract the following information:
 3. Percentage of slides containing code blocks
 4. Percentage of slides containing images
 5. Estimated presentation length (in minutes, assuming ~1 minute per text slide and 2–3 minutes per code or image-heavy slide)
-6. Clarity of content (rate from 1–10 and give a concise explanation)
-7. Tone (a brief description)
-8. Relevance for intended audience (rate from 1–10 and give a concise explanation)
+6. Tone (a brief description)
 
-Additionally, suggest any improvements to:
+Score the presentation on the following categories (from 1–10), and give a concise explanation:
 
-1. Pacing and structure: flag slides where pacing might be too fast or too slow based on the content density. Suggest if slides can be combined or split.
-2. Visual clarity or design: flag slides that are too text-heavy or cluttered and recommend slide redesign like splitting text, adding visuals or adding bullet points.
-3. Storytelling or logical flow: check if the presentation can be improved by adding a motivating opening, summarizing key points before transitions and a clear closure.
-4. Consistency of style and structure: flag sudden shifts in slide formatting, tone, and visual elements that feel unintentional.
-5. Engagement with the audience: check if the presentation can be improved by adding interactive elements like questions, polls and demos, while keeping the time constraint in mind.
-6. Accessibility: flag slides with small text, poor color contrast, or a visual overload.
+1. Clarity of content: evaluate how clearly the ideas are communicated. Are the explanations easy to understand? Are terms defined when needed? Is the key message clear?
+2. Relevance for intended audience: assess how well the content matches the audience’s background, needs, and expectations. Are examples, depth of detail, and terminology appropriate for the audience type?
+3. Visual design: judge the visual effectiveness of the slides. Are they readable, visually balanced, and not overcrowded with text or visuals? Is layout used consistently?
+4. Engagement: estimate how likely the presentation is to keep attention. Are there moments of interactivity, storytelling, humor, or visual interest that invite focus?
+5. Pacing: analyze the distribution of content across slides. Are some slides too dense or too light? 
+6. Structure: review the logical flow of the presentation. Is there a clear beginning, middle, and end? Are transitions between topics smooth? Does the presentation build toward a conclusion?
+7. consistency: evaluate whether the presentation is consistent when it comes to formatting, tone, and visual elements. Are there any elements that feel out of place?
+8. Accessibility: consider how accessible the presentation would be for all viewers, including those with visual or cognitive challenges. Are font sizes readable? Is there sufficient contrast? Are visual elements not overwhelming?
 
-Keep improvements concise and mention the slide number where possible. 
-Only suggest improvements if they are clearly warranted. 
-Do not invent issues if the content is already solid.
+For each of the above scoring categories, provide specific and actionable improvements. Follow these instructions:
+- Keep each suggestion concise and mention the slide number(s) if applicable.
+- Do not invent issues and only suggest improvements when the content would clearly benefit from them.
+- For each catogory, estimate what the new score would be if these improvements are implemented.
+- Return the improvement and new score as part of the response for that category.
 
 Return your answer as a JSON object with the following structure:
 
@@ -33,26 +35,56 @@ Return your answer as a JSON object with the following structure:
   "percent_with_code": 0,
   "percent_with_images": 0,
   "estimated_duration_minutes": 0,
-  "clarity_score": {
-    "score": 0,
-    "justification": ""
-  },
   "tone": "",
-  "relevance_for_audience": {
+  "clarity": {
     "score": 0,
-    "justification": ""
+    "justification": "",
+    "improvements": "",
+    "score_after_improvements": 0
   },
-  "suggested_improvements": {
-    "pacing": "",
-    "visual_design": "",
-    "storytelling": "",
-    "consistency": "",
-    "engagement": "",
-    "accessibility": ""
+  "relevance": {
+    "score": 0,
+    "justification": "",
+    "improvements": "",
+    "score_after_improvements": 0
+  },
+  "visual_design": {
+    "score": 0,
+    "justification": "",
+    "improvements": "",
+    "score_after_improvements": 0
+  },
+  "engagement": {
+    "score": 0,
+    "justification": "",
+    "improvements": "",
+    "score_after_improvements": 0
+  },
+  "pacing": {
+    "score": 0,
+    "justification": "",
+    "improvements": "",
+    "score_after_improvements": 0
+  },
+  "structure": {
+    "score": 0,
+    "justification": "",
+    "improvements": "",
+    "score_after_improvements": 0
+  },
+  "consistency": {
+    "score": 0,
+    "justification": "",
+    "improvements": "",
+    "score_after_improvements": 0
+  },
+  "accessibility": {
+    "score": 0,
+    "justification": "",
+    "improvements": "",
+    "score_after_improvements": 0
   }
 }
 
-For any improvement category that doesn't require feedback, set its value to null.
-
 Here are the slides in Markdown:
-{{ markdown }}
+{{markdown}}

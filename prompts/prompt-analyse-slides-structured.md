@@ -1,13 +1,16 @@
 I will provide you with a slide deck in Markdown. For context, this is a {{ length }}-minute {{ type }} at {{ event }}. 
 The audience is {{ audience }}.
 
-You need to extract meta-data and you need to analyse the content and provide suggestions for improvements. 
-Please extract data according to the provided data model. 
-Return the result as a JSON object that conforms to that provided data model.
+You need to extract meta-data, analyse the slide content, give a score and justification for the provided categories, and make suggestions for improvements for each of these categories.
 
-Keep improvements concise and mention the slide number where possible. 
-Only suggest improvements if they are clearly warranted. 
-Do not invent issues if the content is already solid.
+The improvements you provide must be specific and concise. Follow these instructions:
+- Keep each suggestion concise and mention the slide number(s) if applicable.
+- Do not invent issues and only suggest improvements when the content would clearly benefit from them.
+- For each catogory, estimate what the new score would be if these improvements are implemented.
+- Return the improvement and new score as part of the response for that category.
+
+Please extract the required data and your improvements according to the provided data model. 
+Return the result as a JSON object that conforms to that provided data model.
 
 Here are the slides in Markdown:
 {{ markdown }}
