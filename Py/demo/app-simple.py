@@ -1,4 +1,7 @@
+from dotenv import load_dotenv
 from shiny import App, ui, render
+
+load_dotenv()  # Loads key from the .env file
 
 # Define UI
 app_ui = ui.page_fluid(
