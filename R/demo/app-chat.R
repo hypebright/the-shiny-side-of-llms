@@ -15,7 +15,7 @@ ui <- page_fluid(
     p("Ask me anything about your presentation 💡"),
 
     # Chat component
-    chat_mod_ui("chat_component")
+    chat_mod_ui("my_chat")
   )
 )
 
@@ -26,7 +26,7 @@ server <- function(input, output, session) {
   You give constructive, focused, and practical feedback on titles, structure, and storytelling."
   )
 
-  chat_mod_server("chat_component", chat)
+  chat_mod_server("my_chat", chat)
 }
 
 shinyApp(ui, server)
