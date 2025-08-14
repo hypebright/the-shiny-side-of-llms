@@ -6,14 +6,14 @@ library(ggiraph)
 library(gdtools)
 
 # Register Monteserrat font
-register_gfont("Lato")
+register_gfont("Montserrat")
 
 ui <- page_fillable(
-  theme = bs_theme(bootswatch = "flatly"),
+  theme = bs_theme(bootswatch = "minty"),
   tags$style(HTML(
     "
     #suggested_improvements table {
-      font-family: 'Lato', sans-serif;
+      font-family: 'Montserrat', sans-serif;
       font-size: 16px;
     }
   "
@@ -142,7 +142,7 @@ server <- function(input, output, session) {
     ) +
       geom_bar_interactive(
         stat = "identity",
-        fill = "#18bc9c" # Success color of Flatly theme
+        fill = "#6cc3d5" # Secondary color of minty theme
       ) +
       labs(
         x = "Category",
@@ -150,7 +150,7 @@ server <- function(input, output, session) {
       ) +
       # flip to make horizontal bar chart
       coord_flip() +
-      theme_minimal(base_family = "Lato", base_size = 14) +
+      theme_minimal(base_family = "Montserrat", base_size = 14) +
       theme(legend.position = "none")
 
     girafe(
