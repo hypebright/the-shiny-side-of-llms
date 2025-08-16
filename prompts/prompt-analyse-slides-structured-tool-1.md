@@ -8,8 +8,5 @@ To start, please extract the following meta-data:
 
 Return only the JSON results, nothing else.
 
-I have an HTML file that can be used to improve your analysis, the path to the HTML file is:
-{{ html_file_path }}
-
 Here are the slides in Markdown:
 {{ markdown }}
