@@ -69,7 +69,7 @@ prompt_complete_1 = interpolate_file(
 # Read the second prompt (no dynamic data)
 prompt_complete_2 = prompt_file_2.read_text(encoding="utf-8")
 
-# chat.chat(prompt_complete)
+# chat.chat(prompt_complete_1)
 
 
 # Define data structure to extract from the input
@@ -190,7 +190,4 @@ chat.extract_data(prompt_complete_2, data_model=DeckAnalysis)
 
 # Get tokens for this script
 chat.get_tokens()
-chat.get_cost(
-    options="all",
-    token_price=(0.003, 0.015),  # input: $3, output: $15 per million tokens
-)
+chat.get_cost()

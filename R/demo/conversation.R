@@ -60,7 +60,7 @@ prompt_complete_1 <- interpolate_file(
 # Read the second prompt (no dynamic data)
 prompt_complete_2 <- readChar(prompt_file_2, file.size(prompt_file_2))
 
-#chat$chat(prompt_complete)
+#chat$chat(prompt_complete_1)
 
 # Reusable scoring category
 type_scoring_category <- type_object(
