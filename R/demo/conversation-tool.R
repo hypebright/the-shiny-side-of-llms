@@ -18,7 +18,7 @@ markdown_file <- "./Quarto/docs/my-presentation.md"
 markdown_content <- readChar(markdown_file, file.size(markdown_file))
 
 # Define prompt file
-system_prompt_file <- "./prompts/prompt-analyse-slides-with-improvements.md"
+system_prompt_file <- "./prompts/prompt-analyse-slides-structured-tool.md"
 
 # Create system prompt
 system_prompt <- interpolate_file(
@@ -96,6 +96,61 @@ type_deck_analysis <- type_object(
   )
 )
 
+# Define a tool to calculate some metrics
+# Start with a function:
+
+#' Calculates the total number of slides, percentage of slides with code blocks,
+#' and percentage of slides with images in a Quarto presentation HTML file.
+#'
+#' @param metric The metric to calculate: "total_slides" for total number of slides,
+#' "code" for percentage of slides containing fenced code blocks, or "images"
+#' for percentage of slides containing images.
+#' @return The calculated metric value.
+calculate_slide_metric <- function(metric) {
+  html_file <- "./Quarto/docs/my-presentation.html"
+  if (!file.exists(html_file)) {
+    stop(
+      "HTML file does not exist. Please render your Quarto presentation first."
+    )
+  }
+  # Read HTML file
+  html_content <- readChar(html_file, file.size(html_file))
+
+  # Split on <section> tags to get individual slides
+  slides <- unlist(strsplit(html_content, "<section"))
+
+  total_slides <- length(slides)
+
+  if (metric == "total_slides") {
+    result <- total_slides
+  } else if (metric == "code") {
+    # Count slides where we see the "sourceCode" class
+    slides_with_code <- sum(grepl('class="sourceCode"', slides))
+    result <- round((slides_with_code / total_slides) * 100, 2)
+  } else if (metric == "images") {
+    # Count slides with image tag
+    slides_with_image <- sum(grepl('<img', slides))
+    result <- round((slides_with_image / total_slides) * 100, 2)
+  } else {
+    stop("Unknown metric: choose 'total_slides', 'code', or 'images'")
+  }
+
+  return(result)
+}
+
+# Optionally, to avoid manual work:
+# create_tool_def(calculate_slide_metric)
+calculate_slide_metric <- tool(
+  calculate_slide_metric,
+  "Returns the calculated metric value",
+  metric = type_string(
+    'The metric to calculate: "total_slides" for total number of slides, 
+      "code" for percentage of slides containing fenced code blocks, or "images"
+      for percentage of slides containing images.',
+    required = TRUE
+  )
+)
+
 # Initialise chat with Claude Sonnet 4 model
 chat <- chat_anthropic(
   model = "claude-sonnet-4-20250514",
@@ -105,13 +160,20 @@ chat <- chat_anthropic(
   )
 )
 
+# Register the tool with the chat
+chat$register_tool(calculate_slide_metric)
+
 # Start conversation with the chat
-# Since all the instructions are in the system prompt, we can just
-# provide the Markdown content as a message
-chat$chat_structured(
+# Task 1: regular chat to extract meta-data
+chat$chat(
   interpolate(
-    "Here are the slides in Markdown: {{ markdown_content }}"
-  ),
+    "Execute Task 1 (counts). Here are the slides in Markdown: {{ markdown_content }}"
+  )
+)
+
+# Task 2: structured chat to further analyse the slides
+chat$chat_structured(
+  "Execute Task 2 (suggestions)",
   type = type_deck_analysis
 )
 

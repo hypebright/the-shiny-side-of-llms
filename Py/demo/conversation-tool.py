@@ -3,7 +3,7 @@ from chatlas import ChatAnthropic, interpolate_file, interpolate
 import subprocess
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Union
 
 load_dotenv()  # Loads key from the .env file
 
@@ -24,7 +24,7 @@ markdown_file = Path("./Quarto/docs/my-presentation.md")
 markdown_content = markdown_file.read_text(encoding="utf-8")
 
 # Define prompt file
-system_prompt_file = Path("./prompts/prompt-analyse-slides-structured.md")
+system_prompt_file = Path("./prompts/prompt-analyse-slides-structured-tool.md")
 
 # Create system prompt
 system_prompt = interpolate_file(
@@ -34,9 +34,9 @@ system_prompt = interpolate_file(
         "length": length_content,
         "type": type_content,
         "event": event_content,
+        "markdown_content": markdown_content,
     },
 )
-
 
 # Define data structure to extract from the input
 ScoreType = Annotated[int, Field(ge=0, le=10)]
@@ -101,6 +101,51 @@ class DeckAnalysis(BaseModel):
     )
 
 
+# Define a tool to calculate some metrics
+# Start with a function:
+def calculate_slide_metric(metric: str) -> Union[int, float]:
+    """
+    Calculates the total number of slides, percentage of slides with code blocks,
+    and percentage of slides with images in a Quarto presentation HTML file.
+
+    Parameters
+    ----------
+    metric : str
+        The metric to calculate: "total_slides" for total number of slides,
+        "code" for percentage of slides containing fenced code blocks,
+        or "images" for percentage of slides containing images.
+
+    Returns
+    -------
+    float or int
+        The calculated metric value.
+    """
+    html_file = Path("./Quarto/docs/my-presentation.html")
+    if not html_file.exists():
+        raise FileNotFoundError(f"HTML file {html_file} does not exist.")
+
+    # Read HTML file
+    with open(html_file, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    # Split on <section> tags to get individual slides
+    slides = html_content.split("<section")
+    total_slides = len(slides)
+
+    if metric == "total_slides":
+        result = total_slides
+    elif metric == "code":
+        slides_with_code = sum('class="sourceCode"' in slide for slide in slides)
+        result = round((slides_with_code / total_slides) * 100, 2)
+    elif metric == "images":
+        slides_with_image = sum("<img" in slide for slide in slides)
+        result = round((slides_with_image / total_slides) * 100, 2)
+    else:
+        raise ValueError("Unknown metric: choose 'total_slides', 'code', or 'images'")
+
+    return result
+
+
 # Initialise chat with Claude Sonnet 4 model
 chat = ChatAnthropic(
     model="claude-sonnet-4-20250514",
@@ -112,11 +157,20 @@ chat.set_model_params(
     temperature=0.8,  # default is 1
 )
 
+# Register the tool with the chat
+chat.register_tool(calculate_slide_metric)
+
 # Start conversation with the chat
-# Since all the instructions are in the system prompt, we can just
-# provide the Markdown content as a message
+# Task 1: regular chat to extract meta-data
+chat.chat(
+    interpolate(
+        "Execute Task 1 (counts). Here are the slides in Markdown: {{ markdown_content }}"
+    )
+)
+
+# Task 2: structured chat to further analyse the slides
 chat.extract_data(
-    interpolate("Here are the slides in Markdown: {{ markdown_content }}"),
+    "Execute Task 2 (suggestions)",
     data_model=DeckAnalysis,
 )
 
