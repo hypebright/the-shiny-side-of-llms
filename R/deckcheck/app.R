@@ -9,6 +9,7 @@ library(gdtools)
 register_gfont("Lato")
 
 ui <- page_fillable(
+  ## General theme and styles
   theme = bs_theme(bootswatch = "flatly"),
   tags$style(HTML(
     "
@@ -19,6 +20,7 @@ ui <- page_fillable(
   "
   )),
   layout_sidebar(
+    ## Sidebar content
     sidebar = sidebar(
       width = 400,
       # Open sidebar on mobile devices and show above content
@@ -62,8 +64,10 @@ ui <- page_fillable(
         )
       )
     ),
+    ## Main content
     layout_column_wrap(
       fill = FALSE,
+      ### Value boxes for metrics
       value_box(
         title = tooltip(
           span(
@@ -104,20 +108,44 @@ ui <- page_fillable(
     layout_column_wrap(
       fill = FALSE,
       width = 1 / 2,
+      ### Graph with scoring metrics
       card(
         card_header(
           strong("Scores per category, before and after suggested improvements")
         ),
         girafeOutput(
-          outputId = "scores",
-          height = "600px"
+          outputId = "scores"
         )
       ),
+      ### Table with suggested improvements
       card(
         card_header(strong("Suggested improvements per category")),
         tableOutput(
           outputId = "suggested_improvements"
         )
+      )
+    ),
+    ### Feedback buttons
+    fluidRow(
+      class = "d-flex p-2 gap-2",
+      actionButton(
+        inputId = "like",
+        label = shiny::tagList(
+          bsicons::bs_icon("hand-thumbs-up"),
+          "Like"
+        ),
+        class = "btn-success btn-sm opacity-75",
+        width = "100px"
+      ),
+      actionButton(
+        inputId = "dislike",
+        label = shiny::tagList(
+          bsicons::bs_icon("hand-thumbs-down"),
+          "Dislike"
+        ),
+        # small button
+        class = "btn-danger btn-sm opacity-75",
+        width = "100px"
       )
     )
   )
