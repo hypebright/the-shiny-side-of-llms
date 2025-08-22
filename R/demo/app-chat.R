@@ -4,7 +4,7 @@ library(ellmer)
 library(shinychat)
 
 ui <- page_fluid(
-  theme = bs_theme(bootswatch = "minty"),
+  theme = bs_theme(bootswatch = "flatly"),
 
   # App title
   h1("DeckCheck"),
