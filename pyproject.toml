@@ -5,9 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "altair>=5.5.0",
     "anthropic>=0.57.1",
     "chatlas>=0.9.1",
     "dotenv>=0.9.9",
+    "pandas>=2.3.2",
+    "plotnine>=0.15.0",
     "pydantic>=2.11.7",
     "shiny>=1.4.0",
+    "shinyswatch>=0.9.0",
 ]
