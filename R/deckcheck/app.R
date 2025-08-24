@@ -133,8 +133,14 @@ calculate_slide_metric <- tool(
 register_gfont("Lato")
 
 ui <- page_fillable(
+  ## Options
+  ## Busy indication is enabled by default for UI created with bslib (which we use here),
+  ## but must be enabled otherwise with useBusyIndicators().
+  ## useBusyIndicators(),
   ## General theme and styles
+  ## 1. Bootswatch theme
   theme = bs_theme(bootswatch = "flatly"),
+  ## 2. Custom CSS
   tags$style(HTML(
     "
     #suggested_improvements table {
@@ -143,6 +149,7 @@ ui <- page_fillable(
     }
   "
   )),
+  ## Layout
   layout_sidebar(
     ## Sidebar content
     sidebar = sidebar(
@@ -236,9 +243,9 @@ ui <- page_fillable(
       width = 1 / 2,
       ### Graph with scoring metrics
       card(
-        max_height = 600,
+        height = 600,
         card_header(
-          strong("Scores per category, before and after suggested improvements")
+          strong("Scores per category")
         ),
         girafeOutput(
           outputId = "scores"
@@ -246,7 +253,7 @@ ui <- page_fillable(
       ),
       ### Table with suggested improvements
       card(
-        max_height = 600,
+        height = 600,
         card_header(strong("Suggested improvements per category")),
         tableOutput(
           outputId = "suggested_improvements"
@@ -374,7 +381,6 @@ server <- function(input, output, session) {
 
   # Reactive expression to hold the analysis result
   analysis_result <- reactive({
-    req(chat_task$status() == "success")
     named_list <- chat_task$result()
 
     meta <- tibble(
