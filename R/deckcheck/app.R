@@ -392,7 +392,7 @@ server <- function(input, output, session) {
       tone = named_list$tone
     )
 
-    # evaluation sections (clarity, relevance, etc.)
+    # Evaluation sections (clarity, relevance, etc.)
     eval_sections <- c(
       "clarity",
       "relevance",
@@ -412,7 +412,7 @@ server <- function(input, output, session) {
         )
     })
 
-    # final tidy data frame
+    # Final tidy data frame
     final <- list(
       meta = meta,
       evals = evals
@@ -424,7 +424,7 @@ server <- function(input, output, session) {
 
     evals <- analysis_result()$evals
 
-    # order by score
+    # Order by score
     data <- evals |>
       arrange(score) |>
       mutate(
@@ -442,7 +442,6 @@ server <- function(input, output, session) {
       ) |>
       select(category, score, score_after_improvements, tooltip)
 
-    # set fill to
     p <- ggplot(
       data,
       aes(x = category, y = score, tooltip = tooltip, data_id = category)
@@ -455,7 +454,7 @@ server <- function(input, output, session) {
         x = "Category",
         y = "Score"
       ) +
-      # flip to make horizontal bar chart
+      # Flip to make horizontal bar chart
       coord_flip() +
       theme_minimal(base_family = "Lato", base_size = 14) +
       theme(legend.position = "none")
@@ -498,7 +497,7 @@ server <- function(input, output, session) {
       arrange(desc(Gain))
   })
 
-  # update value boxes based on analysis_result()$meta
+  # Update value boxes based on analysis_result()$meta
   output$showtime <- renderText({
     req(analysis_result())
     paste0(

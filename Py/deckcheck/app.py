@@ -1,4 +1,4 @@
-from shiny import App, reactive, render, ui
+from shiny import App, reactive, render, ui, req
 import shinyswatch
 import pandas as pd
 import plotnine as p9
@@ -188,57 +188,6 @@ thumbs_down = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" 
   <path d="M8.864 15.674c-.956.24-1.843-.484-1.908-1.42-.072-1.05-.23-2.015-.428-2.59-.125-.36-.479-1.012-1.04-1.638-.557-.624-1.282-1.179-2.131-1.41C2.685 8.432 2 7.85 2 7V3c0-.845.682-1.464 1.448-1.546 1.07-.113 1.564-.415 2.068-.723l.048-.029c.272-.166.578-.349.97-.484C6.931.08 7.395 0 8 0h3.5c.937 0 1.599.478 1.934 1.064.164.287.254.607.254.913 0 .152-.023.312-.077.464.201.262.38.577.488.9.11.33.172.762.004 1.15.069.13.12.268.159.403.077.27.113.567.113.856s-.036.586-.113.856c-.035.12-.08.244-.138.363.394.571.418 1.2.234 1.733-.206.592-.682 1.1-1.2 1.272-.847.283-1.803.276-2.516.211a10 10 0 0 1-.443-.05 9.36 9.36 0 0 1-.062 4.51c-.138.508-.55.848-1.012.964zM11.5 1H8c-.51 0-.863.068-1.14.163-.281.097-.506.229-.776.393l-.04.025c-.555.338-1.198.73-2.49.868-.333.035-.554.29-.554.55V7c0 .255.226.543.62.65 1.095.3 1.977.997 2.614 1.709.635.71 1.064 1.475 1.238 1.977.243.7.407 1.768.482 2.85.025.362.36.595.667.518l.262-.065c.16-.04.258-.144.288-.255a8.34 8.34 0 0 0-.145-4.726.5.5 0 0 1 .595-.643h.003l.014.004.058.013a9 9 0 0 0 1.036.157c.663.06 1.457.054 2.11-.163.175-.059.45-.301.57-.651.107-.308.087-.67-.266-1.021L12.793 7l.353-.354c.043-.042.105-.14.154-.315.048-.167.075-.37.075-.581s-.027-.414-.075-.581c-.05-.174-.111-.273-.154-.315l-.353-.354.353-.354c.047-.047.109-.176.005-.488a2.2 2.2 0 0 0-.505-.804l-.353-.354.353-.354c.006-.005.041-.05.041-.17a.9.9 0 0 0-.121-.415C12.4 1.272 12.063 1 11.5 1"/>
 </svg>"""
 
-
-# Mock analysis result for demonstration since we don't have the LLM integration
-def get_mock_analysis():
-    return {
-        "meta": {
-            "presentation_title": "Sample Presentation",
-            "total_slides": 25,
-            "percent_with_code": 40.0,
-            "percent_with_images": 60.0,
-            "estimated_duration_minutes": 15,
-            "tone": "Technical and informative",
-        },
-        "evals": pd.DataFrame(
-            {
-                "category": [
-                    "clarity",
-                    "relevance",
-                    "visual_design",
-                    "engagement",
-                    "pacing",
-                    "structure",
-                    "consistency",
-                    "accessibility",
-                ],
-                "score": [7, 8, 6, 5, 7, 8, 6, 7],
-                "justification": [
-                    "Clear explanations but some technical terms need definition",
-                    "Content matches audience well",
-                    "Good use of visuals but some slides are cluttered",
-                    "Could benefit from more interactive elements",
-                    "Well-paced overall with some dense sections",
-                    "Logical flow with clear beginning and end",
-                    "Mostly consistent formatting with minor variations",
-                    "Good font sizes but could improve color contrast",
-                ],
-                "improvements": [
-                    "Define technical terms on slide 3 and 7",
-                    "Add more practical examples on slides 10-12",
-                    "Reduce text density on slides 5 and 15",
-                    "Add poll questions on slides 8 and 18",
-                    "Split content on slide 20 into two slides",
-                    "Add transition slides between sections",
-                    "Standardize bullet point formatting",
-                    "Increase contrast for text on slide backgrounds",
-                ],
-                "score_after_improvements": [9, 9, 8, 7, 8, 9, 8, 8],
-            }
-        ),
-    }
-
-
 app_ui = ui.page_fillable(
     ## General theme and styles
     ## 1. Custom CSS
@@ -343,19 +292,14 @@ app_ui = ui.page_fillable(
 
 
 def server(input, output, session):
-    # Reactive value to store analysis results
-    analysis_result = reactive.value(None)
-
-    # Mock the analysis process when submit is clicked
-    @reactive.effect
+    @reactive.calc
     @reactive.event(input.submit)
-    async def analyze_presentation():
-        # In a real implementation, this would process the uploaded file
-        # and call the LLM for analysis
+    async def analysis_result():
         if input.file() is not None:
             # Get file path of the uploaded file
             file_path = input.file()[0]["datapath"]
 
+            # Copy the uploaded file to a temporary location with a fixed name
             temp_dir = tempfile.gettempdir()
             qmd_file = Path(temp_dir) / "my-presentation.qmd"
 
@@ -414,14 +358,13 @@ def server(input, output, session):
                 data_model=DeckAnalysis,
             )
 
-            analysis_result.set(make_frames(chat_res2))
+            return make_frames(chat_res2)
 
     @render.plot
-    def scores():
-        if analysis_result() is None:
-            return None
+    async def scores():
+        res = await analysis_result()
 
-        evals = analysis_result()["evals"].copy()
+        evals = res["evals"].copy()
         evals = evals.sort_values("score")
         evals["category"] = pd.Categorical(
             evals["category"], categories=evals["category"], ordered=True
@@ -440,11 +383,10 @@ def server(input, output, session):
         return plot
 
     @render.table
-    def suggested_improvements():
-        if analysis_result() is None:
-            return pd.DataFrame()
+    async def suggested_improvements():
+        res = await analysis_result()
 
-        evals = analysis_result()["evals"].copy()
+        evals = res["evals"].copy()
         evals["Gain"] = evals["score_after_improvements"] - evals["score"]
 
         result_table = evals.assign(
@@ -466,22 +408,19 @@ def server(input, output, session):
         return result_table
 
     @render.text
-    def showtime():
-        if analysis_result() is None:
-            return ""
-        return f"{analysis_result()['meta']['estimated_duration_minutes']} minutes"
+    async def showtime():
+        res = await analysis_result()
+        return f"{res['meta']['estimated_duration_minutes']} minutes"
 
     @render.text
-    def code_savviness():
-        if analysis_result() is None:
-            return ""
-        return f"{analysis_result()['meta']['percent_with_code']} %"
+    async def code_savviness():
+        res = await analysis_result()
+        return f"{res['meta']['percent_with_code']} %"
 
     @render.text
-    def image_presence():
-        if analysis_result() is None:
-            return ""
-        return f"{analysis_result()['meta']['percent_with_images']} %"
+    async def image_presence():
+        res = await analysis_result()
+        return f"{res['meta']['percent_with_images']} %"
 
 
 app = App(app_ui, server)
