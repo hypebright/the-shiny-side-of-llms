@@ -238,23 +238,32 @@ app_ui = ui.page_fillable(
             width=400,
         ),
         ui.layout_column_wrap(
-            ui.value_box(
-                "Showtime",
-                ui.output_text("showtime"),
-                showcase=ui.HTML(file_slides),
-                theme="primary",
+            ui.tooltip(
+                ui.value_box(
+                    "Showtime",
+                    ui.output_text("showtime"),
+                    showcase=ui.HTML(file_slides),
+                    theme="primary",
+                ),
+                "Slides are being counted based on the provided Quarto presentation, then an educated guess is made about the time it will take to present them.",
             ),
-            ui.value_box(
-                "Code Savviness",
-                ui.output_text("code_savviness"),
-                showcase=ui.HTML(file_code),
-                theme="primary",
+            ui.tooltip(
+                ui.value_box(
+                    "Code Savviness",
+                    ui.output_text("code_savviness"),
+                    showcase=ui.HTML(file_code),
+                    theme="primary",
+                ),
+                "Code Saviness is calculated based on the slides that contain code chunks. The percentage is the ratio of those slides to total slides.",
             ),
-            ui.value_box(
-                "Image Presence",
-                ui.output_text("image_presence"),
-                showcase=ui.HTML(file_image),
-                theme="primary",
+            ui.tooltip(
+                ui.value_box(
+                    "Image Presence",
+                    ui.output_text("image_presence"),
+                    showcase=ui.HTML(file_image),
+                    theme="primary",
+                ),
+                "Image Presence is calculated based on the slides that contain images. The percentage is the ratio of those slides to total slides.",
             ),
             width=1 / 3,
             fill=False,
