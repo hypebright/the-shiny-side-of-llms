@@ -188,6 +188,10 @@ thumbs_down = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" 
   <path d="M8.864 15.674c-.956.24-1.843-.484-1.908-1.42-.072-1.05-.23-2.015-.428-2.59-.125-.36-.479-1.012-1.04-1.638-.557-.624-1.282-1.179-2.131-1.41C2.685 8.432 2 7.85 2 7V3c0-.845.682-1.464 1.448-1.546 1.07-.113 1.564-.415 2.068-.723l.048-.029c.272-.166.578-.349.97-.484C6.931.08 7.395 0 8 0h3.5c.937 0 1.599.478 1.934 1.064.164.287.254.607.254.913 0 .152-.023.312-.077.464.201.262.38.577.488.9.11.33.172.762.004 1.15.069.13.12.268.159.403.077.27.113.567.113.856s-.036.586-.113.856c-.035.12-.08.244-.138.363.394.571.418 1.2.234 1.733-.206.592-.682 1.1-1.2 1.272-.847.283-1.803.276-2.516.211a10 10 0 0 1-.443-.05 9.36 9.36 0 0 1-.062 4.51c-.138.508-.55.848-1.012.964zM11.5 1H8c-.51 0-.863.068-1.14.163-.281.097-.506.229-.776.393l-.04.025c-.555.338-1.198.73-2.49.868-.333.035-.554.29-.554.55V7c0 .255.226.543.62.65 1.095.3 1.977.997 2.614 1.709.635.71 1.064 1.475 1.238 1.977.243.7.407 1.768.482 2.85.025.362.36.595.667.518l.262-.065c.16-.04.258-.144.288-.255a8.34 8.34 0 0 0-.145-4.726.5.5 0 0 1 .595-.643h.003l.014.004.058.013a9 9 0 0 0 1.036.157c.663.06 1.457.054 2.11-.163.175-.059.45-.301.57-.651.107-.308.087-.67-.266-1.021L12.793 7l.353-.354c.043-.042.105-.14.154-.315.048-.167.075-.37.075-.581s-.027-.414-.075-.581c-.05-.174-.111-.273-.154-.315l-.353-.354.353-.354c.047-.047.109-.176.005-.488a2.2 2.2 0 0 0-.505-.804l-.353-.354.353-.354c.006-.005.041-.05.041-.17a.9.9 0 0 0-.121-.415C12.4 1.272 12.063 1 11.5 1"/>
 </svg>"""
 
+sad_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-emoji-frown-fill text-warning" viewBox="0 0 16 16">
+  <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16M7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5m-2.715 5.933a.5.5 0 0 1-.183-.683A4.5 4.5 0 0 1 8 9.5a4.5 4.5 0 0 1 3.898 2.25.5.5 0 0 1-.866.5A3.5 3.5 0 0 0 8 10.5a3.5 3.5 0 0 0-3.032 1.75.5.5 0 0 1-.683.183M10 8c-.552 0-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5S10.552 8 10 8"/>
+</svg>"""
+
 app_ui = ui.page_fillable(
     ## General theme and styles
     ## 1. Custom CSS
@@ -295,74 +299,105 @@ def server(input, output, session):
     @reactive.calc
     @reactive.event(input.submit)
     async def analysis_result():
-        if input.file() is not None:
-            # Get file path of the uploaded file
-            file_path = input.file()[0]["datapath"]
+        try:
+            if input.file() is not None:
+                # Error for testing
+                # raise ValueError("This is a test error")
 
-            # Copy the uploaded file to a temporary location with a fixed name
-            temp_dir = tempfile.gettempdir()
-            qmd_file = Path(temp_dir) / "my-presentation.qmd"
+                # Get file path of the uploaded file
+                file_path = input.file()[0]["datapath"]
 
-            shutil.copy(file_path, qmd_file)
+                # Copy the uploaded file to a temporary location with a fixed name
+                temp_dir = tempfile.gettempdir()
+                qmd_file = Path(temp_dir) / "my-presentation.qmd"
 
-            # Get Quarto presentation and convert to plain Markdown + HTML
-            subprocess.run(["quarto", "render", str(qmd_file), "--to", "markdown,html"])
+                shutil.copy(file_path, qmd_file)
 
-            # Read the generated Markdown file containing our slides
-            markdown_file = Path(temp_dir) / "my-presentation.md"
-            markdown_content = markdown_file.read_text(encoding="utf-8")
-
-            system_prompt_file = (
-                ROOT_DIR / "prompts" / "prompt-analyse-slides-structured-tool.md"
-            )
-
-            # Create system prompt
-            system_prompt = interpolate_file(
-                system_prompt_file,
-                variables={
-                    "audience": input.audience(),
-                    "length": input.length(),
-                    "type": input.type(),
-                    "event": input.event(),
-                    "markdown_content": markdown_content,
-                },
-            )
-
-            # Initialise chat with Claude Sonnet 4 model
-            chat = ChatAnthropic(
-                model="claude-sonnet-4-20250514",
-                system_prompt=system_prompt,
-            )
-
-            # Set model parameters (optional)
-            chat.set_model_params(
-                temperature=0.8,  # default is 1
-            )
-
-            # Register the tool with the chat
-            chat.register_tool(calculate_slide_metric)
-
-            # Start conversation with the chat
-            # Task 1: regular chat to extract meta-data
-            chat_res1 = await chat.chat_async(
-                interpolate(
-                    "Execute Task 1 (counts). Here are the slides in Markdown: {{ markdown_content }}"
+                # Get Quarto presentation and convert to plain Markdown + HTML
+                subprocess.run(
+                    ["quarto", "render", str(qmd_file), "--to", "markdown,html"]
                 )
+
+                # Read the generated Markdown file containing our slides
+                markdown_file = Path(temp_dir) / "my-presentation.md"
+                markdown_content = markdown_file.read_text(encoding="utf-8")
+
+                system_prompt_file = (
+                    ROOT_DIR / "prompts" / "prompt-analyse-slides-structured-tool.md"
+                )
+
+                # Create system prompt
+                system_prompt = interpolate_file(
+                    system_prompt_file,
+                    variables={
+                        "audience": input.audience(),
+                        "length": input.length(),
+                        "type": input.type(),
+                        "event": input.event(),
+                        "markdown_content": markdown_content,
+                    },
+                )
+
+                # Initialise chat with Claude Sonnet 4 model
+                chat = ChatAnthropic(
+                    model="claude-sonnet-4-20250514",
+                    system_prompt=system_prompt,
+                )
+
+                # Set model parameters (optional)
+                chat.set_model_params(
+                    temperature=0.8,  # default is 1
+                )
+
+                # Register the tool with the chat
+                chat.register_tool(calculate_slide_metric)
+
+                # Start conversation with the chat
+                # Task 1: regular chat to extract meta-data
+                chat_res1 = await chat.chat_async(
+                    interpolate(
+                        "Execute Task 1 (counts). Here are the slides in Markdown: {{ markdown_content }}"
+                    )
+                )
+
+                print(chat_res1)
+
+                # Task 2: structured chat to further analyse the slides
+                chat_res2 = await chat.extract_data_async(
+                    "Execute Task 2 (suggestions)",
+                    data_model=DeckAnalysis,
+                )
+
+                return make_frames(chat_res2)
+
+        except Exception as e:
+            # Log the error or return a user-friendly message
+            print(f"Error during analysis: {e}")
+            # Return value that triggers modal in UI
+            m = ui.modal(
+                ui.div(
+                    # Sad bootstrap icon
+                    ui.HTML(sad_icon),
+                    ui.br(),
+                    ui.p(
+                        "The not so Shiny Side of LLMs. Please check that your Quarto presentation is valid and contains slides."
+                    ),
+                    # add class to center the content
+                    class_="text-center",
+                ),
+                title="Oops, something went wrong!",
+                easy_close=True,
+                footer=ui.modal_button("Close"),
             )
+            ui.modal_show(m)
 
-            print(chat_res1)
-
-            # Task 2: structured chat to further analyse the slides
-            chat_res2 = await chat.extract_data_async(
-                "Execute Task 2 (suggestions)",
-                data_model=DeckAnalysis,
-            )
-
-            return make_frames(chat_res2)
+            return None
 
     @render.plot
     async def scores():
         res = await analysis_result()
+
+        req(res is not None)
 
         evals = res["evals"].copy()
         evals = evals.sort_values("score")
@@ -385,6 +420,8 @@ def server(input, output, session):
     @render.table
     async def suggested_improvements():
         res = await analysis_result()
+
+        req(res is not None)
 
         evals = res["evals"].copy()
         evals["Gain"] = evals["score_after_improvements"] - evals["score"]
@@ -410,16 +447,19 @@ def server(input, output, session):
     @render.text
     async def showtime():
         res = await analysis_result()
+        req(res is not None)
         return f"{res['meta']['estimated_duration_minutes']} minutes"
 
     @render.text
     async def code_savviness():
         res = await analysis_result()
+        req(res is not None)
         return f"{res['meta']['percent_with_code']} %"
 
     @render.text
     async def image_presence():
         res = await analysis_result()
+        req(res is not None)
         return f"{res['meta']['percent_with_images']} %"
 
 

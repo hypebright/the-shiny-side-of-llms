@@ -336,45 +336,77 @@ server <- function(input, output, session) {
     req(input$type)
     req(input$event)
 
-    # Get file path of the uploaded file
-    file_path <- input$file$datapath
+    tryCatch(
+      {
+        # Error for testing
+        # stop("This is a test error.")
 
-    # Move to temp dir and give consistent name
-    file.copy(
-      file_path,
-      paste0(tempdir(), "/my-presentation.qmd"),
-      overwrite = TRUE
-    )
+        # Get file path of the uploaded file
+        file_path <- input$file$datapath
 
-    # Get Quarto presentation and convert to plain Markdown + HTML
-    quarto::quarto_render(
-      input = paste0(tempdir(), "/my-presentation.qmd"),
-      output_format = c("markdown", "html")
-    )
+        # Move to temp dir and give consistent name
+        file.copy(
+          file_path,
+          paste0(tempdir(), "/my-presentation.qmd"),
+          overwrite = TRUE
+        )
 
-    # Markdown file is generated in the same directory as the input file
-    markdown_file <- paste0(tempdir(), "/my-presentation.md")
+        # Get Quarto presentation and convert to plain Markdown + HTML
+        quarto::quarto_render(
+          input = paste0(tempdir(), "/my-presentation.qmd"),
+          output_format = c("markdown", "html")
+        )
 
-    # Read the generated Markdown file containing our slides
-    markdown_content <- readChar(markdown_file, file.size(markdown_file))
+        # Markdown file is generated in the same directory as the input file
+        markdown_file <- paste0(tempdir(), "/my-presentation.md")
 
-    # Define prompt file
-    system_prompt_file <- "../../prompts/prompt-analyse-slides-structured-tool.md"
+        # Read the generated Markdown file containing our slides
+        markdown_content <- readChar(markdown_file, file.size(markdown_file))
 
-    # Create system prompt
-    system_prompt <- interpolate_file(
-      path = system_prompt_file,
-      audience = input$audience,
-      length = input$length,
-      type = input$type,
-      event = input$event
-    )
+        # Define prompt file
+        system_prompt_file <- "../../prompts/prompt-analyse-slides-structured-tool.md"
 
-    # Trigger the chat task with the provided inputs
-    chat_task$invoke(
-      system_prompt = system_prompt,
-      markdown_content = markdown_content,
-      type_deck_analysis = type_deck_analysis
+        # Create system prompt
+        system_prompt <- interpolate_file(
+          path = system_prompt_file,
+          audience = input$audience,
+          length = input$length,
+          type = input$type,
+          event = input$event
+        )
+
+        # Trigger the chat task with the provided inputs
+        chat_task$invoke(
+          system_prompt = system_prompt,
+          markdown_content = markdown_content,
+          type_deck_analysis = type_deck_analysis
+        )
+      },
+      error = function(e) {
+        # Log the error
+        message("Error when trying to invoke chat_task: ", e$message)
+
+        # Show modal to the user
+        showModal(
+          modalDialog(
+            title = "Oops! Something went wrong",
+            div(
+              class = "text-center",
+              bsicons::bs_icon(
+                "emoji-frown-fill",
+                size = "2em",
+                class = "text-warning"
+              ),
+              br(),
+              p(
+                "The not so Shiny Side of LLMs. Please check that your Quarto presentation is valid and contains slides."
+              )
+            ),
+            easyClose = TRUE,
+            footer = modalButton("Close")
+          )
+        )
+      }
     )
   }) |>
     bindEvent(input$submit)
