@@ -259,29 +259,6 @@ ui <- page_fillable(
           outputId = "suggested_improvements"
         )
       )
-    ),
-    ### Feedback buttons
-    fluidRow(
-      class = "d-flex p-2 gap-2",
-      actionButton(
-        inputId = "like",
-        label = shiny::tagList(
-          bsicons::bs_icon("hand-thumbs-up"),
-          "Like"
-        ),
-        class = "btn-success btn-sm opacity-75",
-        width = "100px"
-      ),
-      actionButton(
-        inputId = "dislike",
-        label = shiny::tagList(
-          bsicons::bs_icon("hand-thumbs-down"),
-          "Dislike"
-        ),
-        # small button
-        class = "btn-danger btn-sm opacity-75",
-        width = "100px"
-      )
     )
   )
 )

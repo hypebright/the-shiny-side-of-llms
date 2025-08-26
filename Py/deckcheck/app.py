@@ -283,23 +283,6 @@ app_ui = ui.page_fillable(
             width=1 / 2,
             fill=False,
         ),
-        ui.div(
-            ui.input_action_button(
-                "like",
-                icon=ui.HTML(thumbs_up),
-                label="Like",
-                class_="btn-success btn-sm",
-                style="opacity: 0.75; margin-right: 10px;",
-            ),
-            ui.input_action_button(
-                "dislike",
-                icon=ui.HTML(thumbs_down),
-                label="Dislike",
-                class_="btn-danger btn-sm",
-                style="opacity: 0.75;",
-            ),
-            class_="d-flex p-2 gap-2",
-        ),
     ),
     theme=shinyswatch.theme.flatly,
 )
