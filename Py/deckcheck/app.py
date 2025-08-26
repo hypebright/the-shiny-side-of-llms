@@ -1,7 +1,8 @@
 from shiny import App, reactive, render, ui, req
+from shinywidgets import output_widget, render_widget
 import shinyswatch
 import pandas as pd
-import plotnine as p9
+import plotly.express as px
 from dotenv import load_dotenv
 from chatlas import ChatAnthropic, interpolate_file, interpolate
 import subprocess
@@ -271,12 +272,12 @@ app_ui = ui.page_fillable(
         ui.layout_column_wrap(
             ui.card(
                 ui.card_header(ui.strong("Scores per category")),
-                ui.output_plot("scores"),
+                output_widget("scores"),
                 height="600px",
             ),
             ui.card(
                 ui.card_header(ui.strong("Suggested improvements per category")),
-                ui.output_table("suggested_improvements"),
+                ui.output_data_frame("suggested_improvements"),
                 height="600px",
             ),
             width=1 / 2,
@@ -402,7 +403,7 @@ def server(input, output, session):
 
             return None
 
-    @render.plot
+    @render_widget
     async def scores():
         res = await analysis_result()
 
@@ -414,19 +415,38 @@ def server(input, output, session):
             evals["category"], categories=evals["category"], ordered=True
         )
 
-        # Create the plot using plotnine
-        plot = (
-            p9.ggplot(evals, p9.aes(x="category", y="score"))
-            + p9.geom_col(fill="#18bc9c")
-            + p9.labs(x="Category", y="Score")
-            + p9.coord_flip()
-            + p9.theme_minimal()
-            + p9.theme(figure_size=(10, 8))
+        # Create a custom tooltip column
+        evals["tooltip"] = (
+            "Score: "
+            + evals["score"].astype(str)
+            + "<br>After improvements: "
+            + evals["score_after_improvements"].astype(str)
+            + "<br>Justification: "
+            + evals["justification"]
         )
+
+        plot = px.bar(
+            evals,
+            x="score",
+            y="category",
+            orientation="h",
+            labels={"category": "Category", "score": "Score"},
+            hover_data={"tooltip": True},  # include the tooltip column
+        )
+
+        # Set hovertemplate to use our custom tooltip
+        plot.update_traces(
+            hovertemplate="%{customdata[0]}<extra></extra>",
+            customdata=evals[["tooltip"]].values,
+        )
+
+        plot.update_traces(marker_color="#18bc9c")
+
+        plot.update_layout(template="simple_white", width=800, height=600)
 
         return plot
 
-    @render.table
+    @render.data_frame
     async def suggested_improvements():
         res = await analysis_result()
 
