@@ -474,7 +474,7 @@ server <- function(input, output, session) {
         opts_selection(type = "none"),
         opts_sizing(rescale = TRUE),
         opts_tooltip(
-          css = "background-color: #f0f0f0; color: #333; padding: 5px; border-radius: 5px;"
+          css = "background-color: #f0f0f0; color: #333; padding: 5px; border-radius: 5px; width: 200px;"
         ),
         opts_hover(
           css = "."
