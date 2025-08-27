@@ -161,6 +161,28 @@ def make_frames(d: dict):
     return {"meta": meta, "evals": evals_df}
 
 
+def add_line_breaks(text, width=50):
+    if not isinstance(text, str):
+        return text
+
+    words = text.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        # +1 accounts for the space if current_line isn’t empty
+        if len(current_line) + len(word) + (1 if current_line else 0) <= width:
+            current_line += (" " if current_line else "") + word
+        else:
+            lines.append(current_line)
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    return "<br>".join(lines)
+
+
 # Icons
 file_slides = """<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-file-slides-fill" viewBox="0 0 16 16">
   <path d="M7 7.78V5.22c0-.096.106-.156.19-.106l2.13 1.279a.125.125 0 0 1 0 .214l-2.13 1.28A.125.125 0 0 1 7 7.778z"/>
@@ -398,6 +420,9 @@ def server(input, output, session):
             evals["category"], categories=evals["category"], ordered=True
         )
 
+        # apply to the justification column
+        evals["justification_wrapped"] = evals["justification"].apply(add_line_breaks)
+
         # Create a custom tooltip column
         evals["tooltip"] = (
             "Score: "
@@ -405,7 +430,7 @@ def server(input, output, session):
             + "<br>After improvements: "
             + evals["score_after_improvements"].astype(str)
             + "<br>Justification: "
-            + evals["justification"]
+            + evals["justification_wrapped"]
         )
 
         plot = px.bar(
@@ -425,7 +450,7 @@ def server(input, output, session):
 
         plot.update_traces(marker_color="#18bc9c")
 
-        plot.update_layout(template="simple_white", width=800, height=600)
+        plot.update_layout(template="simple_white")
 
         return plot
 
