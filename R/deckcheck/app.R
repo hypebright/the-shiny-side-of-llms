@@ -147,6 +147,17 @@ ui <- page_fillable(
       font-family: 'Lato', sans-serif;
       font-size: 16px;
     }
+    .bounce {
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+    }
   "
   )),
   ## Layout
@@ -198,68 +209,7 @@ ui <- page_fillable(
       )
     ),
     ## Main content
-    layout_column_wrap(
-      fill = FALSE,
-      ### Value boxes for metrics
-      value_box(
-        title = tooltip(
-          span(
-            "Showtime ",
-            bsicons::bs_icon("question-circle-fill")
-          ),
-          "Slides are being counted based on the provided Quarto presentation, then an educated guess is made about the time it will take to present them."
-        ),
-        value = textOutput("showtime"),
-        showcase = bsicons::bs_icon("file-slides"),
-        theme = "primary"
-      ),
-      value_box(
-        title = tooltip(
-          span(
-            "Code Savviness ",
-            bsicons::bs_icon("question-circle-fill")
-          ),
-          "Code Saviness is calculated based on the slides that contain code chunks. The percentage is the ratio of those slides to total slides."
-        ),
-        value = textOutput("code_savviness"),
-        showcase = bsicons::bs_icon("file-code"),
-        theme = "primary"
-      ),
-      value_box(
-        title = tooltip(
-          span(
-            "Image Presence ",
-            bsicons::bs_icon("question-circle-fill")
-          ),
-          "Image Presence is calculated based on the slides that contain images. The percentage is the ratio of those slides to total slides."
-        ),
-        value = textOutput("image_presence"),
-        showcase = bsicons::bs_icon("file-image"),
-        theme = "primary"
-      )
-    ),
-    layout_column_wrap(
-      fill = FALSE,
-      width = 1 / 2,
-      ### Graph with scoring metrics
-      card(
-        height = 600,
-        card_header(
-          strong("Scores per category")
-        ),
-        girafeOutput(
-          outputId = "scores"
-        )
-      ),
-      ### Table with suggested improvements
-      card(
-        height = 600,
-        card_header(strong("Suggested improvements per category")),
-        tableOutput(
-          outputId = "suggested_improvements"
-        )
-      )
-    )
+    uiOutput("results", height = "100%")
   )
 )
 
@@ -269,7 +219,7 @@ server <- function(input, output, session) {
     markdown_content,
     type_deck_analysis
   ) {
-    # We're using an Extended Task to avoid blocking the and
+    # We're using an Extended Task to avoid blocking the session and
     # we start a fresh chat session each time.
     # For a feedback loop, we would use a persistent chat session.
     chat <- chat_anthropic(
@@ -329,6 +279,10 @@ server <- function(input, output, session) {
         )
 
         # Get Quarto presentation and convert to plain Markdown + HTML
+        # Note that the Quarto file is processed synchronously here (blocking!),
+        # but the chat task runs asynchronously in the background (non-blocking!).
+        # We could also render the Quarto presentation in a separate ExtendedTask,
+        # but that would add more complexity to this demo.
         quarto::quarto_render(
           input = paste0(tempdir(), "/my-presentation.qmd"),
           output_format = c("markdown", "html")
@@ -341,7 +295,10 @@ server <- function(input, output, session) {
         markdown_content <- readChar(markdown_file, file.size(markdown_file))
 
         # Define prompt file
-        system_prompt_file <- "../../prompts/prompt-analyse-slides-structured-tool.md"
+        system_prompt_file <- here::here(
+          "prompts",
+          "prompt-analyse-slides-structured-tool.md"
+        )
 
         # Create system prompt
         system_prompt <- interpolate_file(
@@ -426,6 +383,88 @@ server <- function(input, output, session) {
       meta = meta,
       evals = evals
     )
+  })
+
+  output$results <- renderUI({
+    if (chat_task$status() == "running") {
+      div(
+        # center horizontally and vertically
+        class = "text-center d-flex flex-column justify-content-center align-items-center",
+        style = "height: 100%;",
+        bsicons::bs_icon(
+          "robot",
+          size = "6em",
+          class = "text-primary bounce"
+        ),
+        br(),
+        p("The LLM is doing its magic...")
+      )
+    } else if (chat_task$status() == "success") {
+      tagList(
+        layout_column_wrap(
+          fill = FALSE,
+          ### Value boxes for metrics
+          value_box(
+            title = tooltip(
+              span(
+                "Showtime ",
+                bsicons::bs_icon("question-circle-fill")
+              ),
+              "Slides are being counted based on the provided Quarto presentation, then an educated guess is made about the time it will take to present them."
+            ),
+            value = textOutput("showtime"),
+            showcase = bsicons::bs_icon("file-slides"),
+            theme = "primary"
+          ),
+          value_box(
+            title = tooltip(
+              span(
+                "Code Savviness ",
+                bsicons::bs_icon("question-circle-fill")
+              ),
+              "Code Saviness is calculated based on the slides that contain code chunks. The percentage is the ratio of those slides to total slides."
+            ),
+            value = textOutput("code_savviness"),
+            showcase = bsicons::bs_icon("file-code"),
+            theme = "primary"
+          ),
+          value_box(
+            title = tooltip(
+              span(
+                "Image Presence ",
+                bsicons::bs_icon("question-circle-fill")
+              ),
+              "Image Presence is calculated based on the slides that contain images. The percentage is the ratio of those slides to total slides."
+            ),
+            value = textOutput("image_presence"),
+            showcase = bsicons::bs_icon("file-image"),
+            theme = "primary"
+          )
+        ),
+        layout_column_wrap(
+          fill = FALSE,
+          width = 1 / 2,
+          ### Graph with scoring metrics
+          card(
+            height = 600,
+            card_header(
+              strong("Scores per category")
+            ),
+            girafeOutput(
+              outputId = "scores"
+            )
+          ),
+          ### Table with suggested improvements
+          card(
+            height = 600,
+            card_header(strong("Suggested improvements per category")),
+            tableOutput(
+              outputId = "suggested_improvements"
+            )
+          )
+        )
+      )
+    }
   })
 
   output$scores <- renderGirafe({

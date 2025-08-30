@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from typing import Annotated, Optional, Union
 import tempfile
 import shutil
+import asyncio
 
 load_dotenv()  # Loads key from the .env file
 
@@ -203,6 +204,11 @@ robot = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="
   <path d="M8.5 1.866a1 1 0 1 0-1 0V3h-2A4.5 4.5 0 0 0 1 7.5V8a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1v1a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1v-.5A4.5 4.5 0 0 0 10.5 3h-2zM14 7.5V13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.5A3.5 3.5 0 0 1 5.5 4h5A3.5 3.5 0 0 1 14 7.5"/>
 </svg>"""
 
+robot_loader = """<svg xmlns="http://www.w3.org/2000/svg" width="6em" height="6em" fill="currentColor" class="bi bi-robot text-primary bounce" viewBox="0 0 16 16">
+  <path d="M6 12.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5M3 8.062C3 6.76 4.235 5.765 5.53 5.886a26.6 26.6 0 0 0 4.94 0C11.765 5.765 13 6.76 13 8.062v1.157a.93.93 0 0 1-.765.935c-.845.147-2.34.346-4.235.346s-3.39-.2-4.235-.346A.93.93 0 0 1 3 9.219zm4.542-.827a.25.25 0 0 0-.217.068l-.92.9a25 25 0 0 1-1.871-.183.25.25 0 0 0-.068.495c.55.076 1.232.149 2.02.193a.25.25 0 0 0 .189-.071l.754-.736.847 1.71a.25.25 0 0 0 .404.062l.932-.97a25 25 0 0 0 1.922-.188.25.25 0 0 0-.068-.495c-.538.074-1.207.145-1.98.189a.25.25 0 0 0-.166.076l-.754.785-.842-1.7a.25.25 0 0 0-.182-.135"/>
+  <path d="M8.5 1.866a1 1 0 1 0-1 0V3h-2A4.5 4.5 0 0 0 1 7.5V8a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1v1a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1v-.5A4.5 4.5 0 0 0 10.5 3h-2zM14 7.5V13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.5A3.5 3.5 0 0 1 5.5 4h5A3.5 3.5 0 0 1 14 7.5"/>
+</svg>"""
+
 thumbs_up = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hand-thumbs-up" viewBox="0 0 16 16">
   <path d="M8.864.046C7.908-.193 7.02.53 6.956 1.466c-.072 1.051-.23 2.016-.428 2.59-.125.36-.479 1.013-1.04 1.639-.557.623-1.282 1.178-2.131 1.41C2.685 7.288 2 7.87 2 8.72v4.001c0 .845.682 1.464 1.448 1.545 1.07.114 1.564.415 2.068.723l.048.03c.272.165.578.348.97.484.397.136.861.217 1.466.217h3.5c.937 0 1.599-.477 1.934-1.064a1.86 1.86 0 0 0 .254-.912c0-.152-.023-.312-.077-.464.201-.263.38-.578.488-.901.11-.33.172-.762.004-1.149.069-.13.12-.269.159-.403.077-.27.113-.568.113-.857 0-.288-.036-.585-.113-.856a2 2 0 0 0-.138-.362 1.9 1.9 0 0 0 .234-1.734c-.206-.592-.682-1.1-1.2-1.272-.847-.282-1.803-.276-2.516-.211a10 10 0 0 0-.443.05 9.4 9.4 0 0 0-.062-4.509A1.38 1.38 0 0 0 9.125.111zM11.5 14.721H8c-.51 0-.863-.069-1.14-.164-.281-.097-.506-.228-.776-.393l-.04-.024c-.555-.339-1.198-.731-2.49-.868-.333-.036-.554-.29-.554-.55V8.72c0-.254.226-.543.62-.65 1.095-.3 1.977-.996 2.614-1.708.635-.71 1.064-1.475 1.238-1.978.243-.7.407-1.768.482-2.85.025-.362.36-.594.667-.518l.262.066c.16.04.258.143.288.255a8.34 8.34 0 0 1-.145 4.725.5.5 0 0 0 .595.644l.003-.001.014-.003.058-.014a9 9 0 0 1 1.036-.157c.663-.06 1.457-.054 2.11.164.175.058.45.3.57.65.107.308.087.67-.266 1.022l-.353.353.353.354c.043.043.105.141.154.315.048.167.075.37.075.581 0 .212-.027.414-.075.582-.05.174-.111.272-.154.315l-.353.353.353.354c.047.047.109.177.005.488a2.2 2.2 0 0 1-.505.805l-.353.353.353.354c.006.005.041.05.041.17a.9.9 0 0 1-.121.416c-.165.288-.503.56-1.066.56z"/>
 </svg>"""
@@ -222,6 +228,17 @@ app_ui = ui.page_fillable(
         #suggested_improvements table {
             font-family: 'Lato', sans-serif;
             font-size: 11px;
+        }
+        .bounce {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-20px);
+        }
         }
     """),
     ui.layout_sidebar(
@@ -253,89 +270,87 @@ app_ui = ui.page_fillable(
                 placeholder="e.g. lightning talk, workshop, or keynote",
             ),
             ui.input_text("event", "Event name", placeholder="e.g. posit::conf(2025)"),
-            ui.input_action_button(
+            ui.input_task_button(
                 "submit",
                 icon=ui.HTML(robot),
                 label="Analyse presentation",
             ),
             width=400,
         ),
-        ui.layout_column_wrap(
-            ui.tooltip(
-                ui.value_box(
-                    "Showtime",
-                    ui.output_text("showtime"),
-                    showcase=ui.HTML(file_slides),
-                    theme="primary",
-                ),
-                "Slides are being counted based on the provided Quarto presentation, then an educated guess is made about the time it will take to present them.",
-            ),
-            ui.tooltip(
-                ui.value_box(
-                    "Code Savviness",
-                    ui.output_text("code_savviness"),
-                    showcase=ui.HTML(file_code),
-                    theme="primary",
-                ),
-                "Code Saviness is calculated based on the slides that contain code chunks. The percentage is the ratio of those slides to total slides.",
-            ),
-            ui.tooltip(
-                ui.value_box(
-                    "Image Presence",
-                    ui.output_text("image_presence"),
-                    showcase=ui.HTML(file_image),
-                    theme="primary",
-                ),
-                "Image Presence is calculated based on the slides that contain images. The percentage is the ratio of those slides to total slides.",
-            ),
-            width=1 / 3,
-            fill=False,
-        ),
-        ui.layout_column_wrap(
-            ui.card(
-                ui.card_header(ui.strong("Scores per category")),
-                output_widget("scores"),
-                height="600px",
-            ),
-            ui.card(
-                ui.card_header(ui.strong("Suggested improvements per category")),
-                ui.output_data_frame("suggested_improvements"),
-                height="600px",
-            ),
-            width=1 / 2,
-            fill=False,
-        ),
+        ui.output_ui("results"),
     ),
     theme=shinyswatch.theme.flatly,
 )
 
 
 def server(input, output, session):
-    @reactive.calc
-    @reactive.event(input.submit)
-    async def analysis_result():
-        try:
-            if input.file() is not None:
-                # Error for testing
-                # raise ValueError("This is a test error")
+    @ui.bind_task_button(button_id="submit")
+    @reactive.extended_task
+    async def chat_task(system_prompt, markdown_content, DeckAnalysis):
+        # We're using an extended task to avoid blocking the session and
+        # we start a fresh chat session each time.
+        # For a feedback loop, we would use a persistent chat session.
+        # Initialise chat with Claude Sonnet 4 model
+        chat = ChatAnthropic(
+            model="claude-sonnet-4-20250514",
+            system_prompt=system_prompt,
+        )
 
+        # Set model parameters (optional)
+        chat.set_model_params(
+            temperature=0.8,  # default is 1
+        )
+
+        # Register the tool with the chat
+        chat.register_tool(calculate_slide_metric)
+
+        # Start conversation with the chat
+        # Task 1: regular chat to extract meta-data
+        chat_res1 = await chat.chat_async(
+            interpolate(
+                "Execute Task 1 (counts). Here are the slides in Markdown: {{ markdown_content }}"
+            )
+        )
+
+        print(chat_res1)
+
+        # Task 2: structured chat to further analyse the slides
+        chat_res2 = await chat.extract_data_async(
+            "Execute Task 2 (suggestions)",
+            data_model=DeckAnalysis,
+        )
+
+        return chat_res2
+
+    async def quarto_task(file_path):
+        # Copy the uploaded file to a temporary location with a fixed name
+        temp_dir = tempfile.gettempdir()
+        qmd_file = Path(temp_dir) / "my-presentation.qmd"
+
+        shutil.copy(file_path, qmd_file)
+
+        # Run asyncio subprocess to avoid blocking
+        proc = await asyncio.create_subprocess_exec(
+            "quarto", "render", str(qmd_file), "--to", "markdown,html"
+        )
+        await proc.communicate()
+
+        # Read the generated Markdown file containing our slides
+        markdown_file = Path(temp_dir) / "my-presentation.md"
+
+        return markdown_file.read_text(encoding="utf-8")
+
+    @reactive.effect
+    @reactive.event(input.submit)
+    async def run_chat():
+        if input.file() is not None:
+            try:
                 # Get file path of the uploaded file
                 file_path = input.file()[0]["datapath"]
 
-                # Copy the uploaded file to a temporary location with a fixed name
-                temp_dir = tempfile.gettempdir()
-                qmd_file = Path(temp_dir) / "my-presentation.qmd"
+                quarto_processing = asyncio.create_task(quarto_task(file_path))
 
-                shutil.copy(file_path, qmd_file)
-
-                # Get Quarto presentation and convert to plain Markdown + HTML
-                subprocess.run(
-                    ["quarto", "render", str(qmd_file), "--to", "markdown,html"]
-                )
-
-                # Read the generated Markdown file containing our slides
-                markdown_file = Path(temp_dir) / "my-presentation.md"
-                markdown_content = markdown_file.read_text(encoding="utf-8")
+                markdown_content = await quarto_processing
 
                 system_prompt_file = (
                     ROOT_DIR / "prompts" / "prompt-analyse-slides-structured-tool.md"
@@ -353,64 +368,103 @@ def server(input, output, session):
                     },
                 )
 
-                # Initialise chat with Claude Sonnet 4 model
-                chat = ChatAnthropic(
-                    model="claude-sonnet-4-20250514",
-                    system_prompt=system_prompt,
-                )
+                chat_task.invoke(system_prompt, markdown_content, DeckAnalysis)
 
-                # Set model parameters (optional)
-                chat.set_model_params(
-                    temperature=0.8,  # default is 1
-                )
+            except Exception as e:
+                print(f"Error during analysis: {e}")
 
-                # Register the tool with the chat
-                chat.register_tool(calculate_slide_metric)
-
-                # Start conversation with the chat
-                # Task 1: regular chat to extract meta-data
-                chat_res1 = await chat.chat_async(
-                    interpolate(
-                        "Execute Task 1 (counts). Here are the slides in Markdown: {{ markdown_content }}"
-                    )
-                )
-
-                print(chat_res1)
-
-                # Task 2: structured chat to further analyse the slides
-                chat_res2 = await chat.extract_data_async(
-                    "Execute Task 2 (suggestions)",
-                    data_model=DeckAnalysis,
-                )
-
-                return make_frames(chat_res2)
-
-        except Exception as e:
-            # Log the error or return a user-friendly message
-            print(f"Error during analysis: {e}")
-            # Return value that triggers modal in UI
-            m = ui.modal(
-                ui.div(
-                    # Sad bootstrap icon
-                    ui.HTML(sad_icon),
-                    ui.br(),
-                    ui.p(
-                        "The not so Shiny Side of LLMs. Please check that your Quarto presentation is valid and contains slides."
+                # Return value that triggers modal in UI
+                m = ui.modal(
+                    ui.div(
+                        # Sad bootstrap icon
+                        ui.HTML(sad_icon),
+                        ui.br(),
+                        ui.p(
+                            "The not so Shiny Side of LLMs. Please check that your Quarto presentation is valid and contains slides."
+                        ),
+                        # add class to center the content
+                        class_="text-center",
                     ),
-                    # add class to center the content
-                    class_="text-center",
-                ),
-                title="Oops, something went wrong!",
-                easy_close=True,
-                footer=ui.modal_button("Close"),
-            )
-            ui.modal_show(m)
+                    title="Oops, something went wrong!",
+                    easy_close=True,
+                    footer=ui.modal_button("Close"),
+                )
+                ui.modal_show(m)
 
+    @reactive.calc
+    def analysis_result():
+        res = chat_task.result()
+        if res is not None:
+            print(res)
+            return make_frames(res)
+        else:
             return None
 
+    @render.ui
+    async def results():
+        if chat_task.status() == "running":
+            return ui.div(
+                ui.HTML(robot_loader),
+                ui.br(),
+                ui.p("The LLM is doing its magic..."),
+                class_="text-center d-flex flex-column justify-content-center align-items-center",
+                style="height: 100%",
+            )
+
+        elif chat_task.status() == "success":
+            return ui.TagList(
+                ui.layout_column_wrap(
+                    ui.tooltip(
+                        ui.value_box(
+                            "Showtime",
+                            ui.output_text("showtime"),
+                            showcase=ui.HTML(file_slides),
+                            theme="primary",
+                        ),
+                        "Slides are being counted based on the provided Quarto presentation, then an educated guess is made about the time it will take to present them.",
+                    ),
+                    ui.tooltip(
+                        ui.value_box(
+                            "Code Savviness",
+                            ui.output_text("code_savviness"),
+                            showcase=ui.HTML(file_code),
+                            theme="primary",
+                        ),
+                        "Code Saviness is calculated based on the slides that contain code chunks. The percentage is the ratio of those slides to total slides.",
+                    ),
+                    ui.tooltip(
+                        ui.value_box(
+                            "Image Presence",
+                            ui.output_text("image_presence"),
+                            showcase=ui.HTML(file_image),
+                            theme="primary",
+                        ),
+                        "Image Presence is calculated based on the slides that contain images. The percentage is the ratio of those slides to total slides.",
+                    ),
+                    width=1 / 3,
+                    fill=False,
+                ),
+                ui.layout_column_wrap(
+                    ui.card(
+                        ui.card_header(ui.strong("Scores per category")),
+                        output_widget("scores"),
+                        height="600px",
+                    ),
+                    ui.card(
+                        ui.card_header(
+                            ui.strong("Suggested improvements per category")
+                        ),
+                        ui.output_data_frame("suggested_improvements"),
+                        height="600px",
+                    ),
+                    width=1 / 2,
+                    fill=False,
+                ),
+            )
+
     @render_widget
-    async def scores():
-        res = await analysis_result()
+    def scores():
+        res = analysis_result()
 
         req(res is not None)
 
@@ -455,8 +509,8 @@ def server(input, output, session):
         return plot
 
     @render.data_frame
-    async def suggested_improvements():
-        res = await analysis_result()
+    def suggested_improvements():
+        res = analysis_result()
 
         req(res is not None)
 
@@ -482,20 +536,21 @@ def server(input, output, session):
         return result_table
 
     @render.text
-    async def showtime():
-        res = await analysis_result()
+    def showtime():
+        res = analysis_result()
+
         req(res is not None)
         return f"{res['meta']['estimated_duration_minutes']} minutes"
 
     @render.text
-    async def code_savviness():
-        res = await analysis_result()
+    def code_savviness():
+        res = analysis_result()
         req(res is not None)
         return f"{res['meta']['percent_with_code']} %"
 
     @render.text
-    async def image_presence():
-        res = await analysis_result()
+    def image_presence():
+        res = analysis_result()
         req(res is not None)
         return f"{res['meta']['percent_with_images']} %"
 
