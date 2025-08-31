@@ -91,7 +91,7 @@ class DeckAnalysis(BaseModel):
         ...,
         description="Review the logical flow of the presentation. Is there a clear beginning, middle, and end? Are transitions between topics smooth? Does the presentation build toward a conclusion?",
     )
-    concistency: ScoringCategory = Field(  # spelling kept as-is
+    consistency: ScoringCategory = Field(  # spelling kept as-is
         ...,
         description="Evaluatue whether the presentation is consistent when it comes to formatting, tone, and visual elements. Are there any elements that feel out of place?",
     )

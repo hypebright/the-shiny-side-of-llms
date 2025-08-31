@@ -57,7 +57,7 @@ Always return your answer as a JSON object with the following structure:
     "score": 0,
     "justification": ""
   },
-  "concistency": {
+  "consistency": {
     "score": 0,
     "justification": ""
   },

@@ -86,7 +86,7 @@ type_deck_analysis <- type_object(
     description = "Review the logical flow of the presentation. Is there a clear beginning, middle, and end? Are transitions between topics smooth? Does the presentation build toward a conclusion?",
     type_scoring_category
   ),
-  concistency = type_array(
+  consistency = type_array(
     description = "Evaluate whether the presentation is consistent when it comes to formatting, tone, and visual elements. Are there any elements that feel out of place?",
     type_scoring_category
   ),
