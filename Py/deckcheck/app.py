@@ -74,7 +74,7 @@ class DeckAnalysis(BaseModel):
         ...,
         description="Review the logical flow of the presentation. Is there a clear beginning, middle, and end? Are transitions between topics smooth? Does the presentation build toward a conclusion?",
     )
-    concistency: ScoringCategory = Field(  # spelling kept as-is
+    consistency: ScoringCategory = Field(  # spelling kept as-is
         ...,
         description="Evaluatue whether the presentation is consistent when it comes to formatting, tone, and visual elements. Are there any elements that feel out of place?",
     )
@@ -146,10 +146,9 @@ def make_frames(d: dict):
     for k, v in d.items():
         if k not in meta_keys:
             # fix typo
-            category = "consistency" if k == "concistency" else k
             evals.append(
                 {
-                    "category": category,
+                    "category": k,
                     "score": v["score"],
                     "justification": v["justification"],
                     "improvements": v["improvements"],
@@ -188,6 +187,11 @@ def add_line_breaks(text, width=50):
 file_slides = """<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-file-slides-fill" viewBox="0 0 16 16">
   <path d="M7 7.78V5.22c0-.096.106-.156.19-.106l2.13 1.279a.125.125 0 0 1 0 .214l-2.13 1.28A.125.125 0 0 1 7 7.778z"/>
   <path d="M12 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M5 4h6a.5.5 0 0 1 .496.438l.5 4A.5.5 0 0 1 11.5 9h-3v2.016c.863.055 1.5.251 1.5.484 0 .276-.895.5-2 .5s-2-.224-2-.5c0-.233.637-.429 1.5-.484V9h-3a.5.5 0 0 1-.496-.562l.5-4A.5.5 0 0 1 5 4"/>
+</svg>"""
+
+file_slides_loader = """<svg xmlns="http://www.w3.org/2000/svg" width="6em" height="6em" fill="currentColor" class="bi bi-file-slides bounce" viewBox="0 0 16 16">
+  <path d="M5 4a.5.5 0 0 0-.496.438l-.5 4A.5.5 0 0 0 4.5 9h3v2.016c-.863.055-1.5.251-1.5.484 0 .276.895.5 2 .5s2-.224 2-.5c0-.233-.637-.429-1.5-.484V9h3a.5.5 0 0 0 .496-.562l-.5-4A.5.5 0 0 0 11 4zm2 3.78V5.22c0-.096.106-.156.19-.106l2.13 1.279a.125.125 0 0 1 0 .214l-2.13 1.28A.125.125 0 0 1 7 7.778z"/>
+  <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
 </svg>"""
 
 file_code = """<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-file-code-fill" viewBox="0 0 16 16">
@@ -286,6 +290,22 @@ app_ui = ui.page_fillable(
 def server(input, output, session):
     @ui.bind_task_button(button_id="submit")
     @reactive.extended_task
+    async def quarto_task(file_path, temp_dir):
+        # Copy the uploaded file to a temporary location with a fixed name
+        qmd_file = Path(temp_dir) / "my-presentation.qmd"
+
+        shutil.copy(file_path, qmd_file)
+
+        # Run asyncio subprocess to avoid blocking
+        proc = await asyncio.create_subprocess_exec(
+            "quarto", "render", str(qmd_file), "--to", "markdown,html"
+        )
+        await proc.communicate()
+
+        return Path(temp_dir) / "my-presentation.md"
+
+    @ui.bind_task_button(button_id="submit")
+    @reactive.extended_task
     async def chat_task(system_prompt, markdown_content, DeckAnalysis):
         # We're using an extended task to avoid blocking the session and
         # we start a fresh chat session each time.
@@ -322,56 +342,18 @@ def server(input, output, session):
 
         return chat_res2
 
-    async def quarto_task(file_path):
-        # Copy the uploaded file to a temporary location with a fixed name
-        temp_dir = tempfile.gettempdir()
-        qmd_file = Path(temp_dir) / "my-presentation.qmd"
-
-        shutil.copy(file_path, qmd_file)
-
-        # Run asyncio subprocess to avoid blocking
-        proc = await asyncio.create_subprocess_exec(
-            "quarto", "render", str(qmd_file), "--to", "markdown,html"
-        )
-        await proc.communicate()
-
-        # Read the generated Markdown file containing our slides
-        markdown_file = Path(temp_dir) / "my-presentation.md"
-
-        return markdown_file.read_text(encoding="utf-8")
-
     @reactive.effect
     @reactive.event(input.submit)
-    async def run_chat():
+    async def run_quarto():
         if input.file() is not None:
             try:
                 # Get file path of the uploaded file
                 file_path = input.file()[0]["datapath"]
 
-                quarto_processing = asyncio.create_task(quarto_task(file_path))
-
-                markdown_content = await quarto_processing
-
-                system_prompt_file = (
-                    ROOT_DIR / "prompts" / "prompt-analyse-slides-structured-tool.md"
-                )
-
-                # Create system prompt
-                system_prompt = interpolate_file(
-                    system_prompt_file,
-                    variables={
-                        "audience": input.audience(),
-                        "length": input.length(),
-                        "type": input.type(),
-                        "event": input.event(),
-                        "markdown_content": markdown_content,
-                    },
-                )
-
-                chat_task.invoke(system_prompt, markdown_content, DeckAnalysis)
+                quarto_task.invoke(file_path, tempfile.gettempdir())
 
             except Exception as e:
-                print(f"Error during analysis: {e}")
+                print(f"Error when trying to invoke quarto_task: {e}")
 
                 # Return value that triggers modal in UI
                 m = ui.modal(
@@ -391,18 +373,73 @@ def server(input, output, session):
                 )
                 ui.modal_show(m)
 
+    @reactive.effect
+    def run_chat():
+        # require quarto_task result to be available
+        req(quarto_task.result() is not None)
+        try:
+            markdown_file = quarto_task.result()
+            markdown_content = markdown_file.read_text(encoding="utf-8")
+
+            system_prompt_file = (
+                ROOT_DIR / "prompts" / "prompt-analyse-slides-structured-tool.md"
+            )
+
+            # Create system prompt
+            system_prompt = interpolate_file(
+                system_prompt_file,
+                variables={
+                    "audience": input.audience(),
+                    "length": input.length(),
+                    "type": input.type(),
+                    "event": input.event(),
+                    "markdown_content": markdown_content,
+                },
+            )
+
+            chat_task.invoke(system_prompt, markdown_content, DeckAnalysis)
+
+        except Exception as e:
+            print(f"Error when trying to invoke chat_task: {e}")
+
+            # Return value that triggers modal in UI
+            m = ui.modal(
+                ui.div(
+                    # Sad bootstrap icon
+                    ui.HTML(sad_icon),
+                    ui.br(),
+                    ui.p(
+                        "The not so Shiny Side of LLMs. Unfortunately, chatting didn't work out. Do you have enough credits left?"
+                    ),
+                    # add class to center the content
+                    class_="text-center",
+                ),
+                title="Oops, something went wrong!",
+                easy_close=True,
+                footer=ui.modal_button("Close"),
+            )
+            ui.modal_show(m)
+
     @reactive.calc
     def analysis_result():
         res = chat_task.result()
         if res is not None:
-            print(res)
             return make_frames(res)
         else:
             return None
 
     @render.ui
     async def results():
-        if chat_task.status() == "running":
+        if quarto_task.status() == "running":
+            return ui.div(
+                ui.HTML(file_slides_loader),
+                ui.br(),
+                ui.p("Processing your Quarto presentation..."),
+                class_="text-center d-flex flex-column justify-content-center align-items-center",
+                style="height: 100%",
+            )
+
+        elif chat_task.status() == "running":
             return ui.div(
                 ui.HTML(robot_loader),
                 ui.br(),
@@ -518,7 +555,7 @@ def server(input, output, session):
         evals["Gain"] = evals["score_after_improvements"] - evals["score"]
 
         result_table = evals.assign(
-            Category=evals["category"].str.title(),
+            Category=evals["category"],
             **{"Current score": evals["score"]},
             Improvements=evals["improvements"],
             **{"Score After Improvements": evals["score_after_improvements"]},

@@ -1,6 +1,7 @@
 library(shiny)
 library(bslib)
 library(ellmer)
+library(mirai)
 library(ggplot2)
 library(ggiraph)
 library(gdtools)
@@ -64,7 +65,7 @@ type_deck_analysis <- type_object(
     description = "Review the logical flow of the presentation. Is there a clear beginning, middle, and end? Are transitions between topics smooth? Does the presentation build toward a conclusion?",
     type_scoring_category
   ),
-  concistency = type_array(
+  consistency = type_array(
     description = "Evaluate whether the presentation is consistent when it comes to formatting, tone, and visual elements. Are there any elements that feel out of place?",
     type_scoring_category
   ),
@@ -214,6 +215,30 @@ ui <- page_fillable(
 )
 
 server <- function(input, output, session) {
+  quarto_task <- ExtendedTask$new(function(file_path, temp_dir) {
+    # We're using an Extended Task to avoid blocking. Note that
+    # a temporary directory called within mirai will be
+    # different from the one in the "main" Shiny session. Hence,
+    # we pass a temp_dir parameter to the task and use that.
+    mirai(
+      {
+        qmd_file <- file.path(temp_dir, "my-presentation.qmd")
+        file.copy(file_path, qmd_file, overwrite = TRUE)
+
+        quarto::quarto_render(
+          input = qmd_file,
+          output_format = c("markdown", "html")
+        )
+
+        # Return the path to the markdown file
+        file.path(temp_dir, "my-presentation.md")
+      },
+      # Use the same environment as the Shiny app
+      environment()
+    )
+  }) |>
+    bind_task_button("submit")
+
   chat_task <- ExtendedTask$new(function(
     system_prompt,
     markdown_content,
@@ -271,26 +296,45 @@ server <- function(input, output, session) {
         # Get file path of the uploaded file
         file_path <- input$file$datapath
 
-        # Move to temp dir and give consistent name
-        file.copy(
-          file_path,
-          paste0(tempdir(), "/my-presentation.qmd"),
-          overwrite = TRUE
+        quarto_task$invoke(file_path, temp_dir = tempdir())
+      },
+      error = function(e) {
+        # Log the error
+        message("Error when trying to invoke quarto_task: ", e$message)
+
+        # Show modal to the user
+        showModal(
+          modalDialog(
+            title = "Oops! Something went wrong",
+            div(
+              class = "text-center",
+              bsicons::bs_icon(
+                "emoji-frown-fill",
+                size = "2em",
+                class = "text-warning"
+              ),
+              br(),
+              p(
+                "The not so Shiny Side of LLMs. Please check that your Quarto presentation is valid and contains slides."
+              )
+            ),
+            easyClose = TRUE,
+            footer = modalButton("Close")
+          )
         )
+      }
+    )
+  }) |>
+    bindEvent(input$submit)
 
-        # Get Quarto presentation and convert to plain Markdown + HTML
-        # Note that the Quarto file is processed synchronously here (blocking!),
-        # but the chat task runs asynchronously in the background (non-blocking!).
-        # We could also render the Quarto presentation in a separate ExtendedTask,
-        # but that would add more complexity to this demo.
-        quarto::quarto_render(
-          input = paste0(tempdir(), "/my-presentation.qmd"),
-          output_format = c("markdown", "html")
-        )
+  observe({
+    tryCatch(
+      {
+        # Error for testing
+        # stop("This is a test error.")
 
-        # Markdown file is generated in the same directory as the input file
-        markdown_file <- paste0(tempdir(), "/my-presentation.md")
-
+        # Get the markdown file path from the completed quarto_task
+        markdown_file <- quarto_task$result()
         # Read the generated Markdown file containing our slides
         markdown_content <- readChar(markdown_file, file.size(markdown_file))
 
@@ -333,7 +377,7 @@ server <- function(input, output, session) {
               ),
               br(),
               p(
-                "The not so Shiny Side of LLMs. Please check that your Quarto presentation is valid and contains slides."
+                "The not so Shiny Side of LLMs. Unfortunately, chatting didn't work out. Do you have enough credits left?"
               )
             ),
             easyClose = TRUE,
@@ -342,8 +386,7 @@ server <- function(input, output, session) {
         )
       }
     )
-  }) |>
-    bindEvent(input$submit)
+  })
 
   # Reactive expression to hold the analysis result
   analysis_result <- reactive({
@@ -366,7 +409,7 @@ server <- function(input, output, session) {
       "engagement",
       "pacing",
       "structure",
-      "concistency",
+      "consistency",
       "accessibility"
     )
 
@@ -386,7 +429,20 @@ server <- function(input, output, session) {
   })
 
   output$results <- renderUI({
-    if (chat_task$status() == "running") {
+    if (quarto_task$status() == "running") {
+      div(
+        # center horizontally and vertically
+        class = "text-center d-flex flex-column justify-content-center align-items-center",
+        style = "height: 100%;",
+        bsicons::bs_icon(
+          "file-slides",
+          size = "6em",
+          class = "text-primary bounce"
+        ),
+        br(),
+        p("Processing your Quarto presentation...")
+      )
+    } else if (chat_task$status() == "running") {
       div(
         # center horizontally and vertically
         class = "text-center d-flex flex-column justify-content-center align-items-center",
@@ -397,7 +453,7 @@ server <- function(input, output, session) {
           class = "text-primary bounce"
         ),
         br(),
-        p("The LLM is doing its magic...")
+        p("The LLM is doing it's magic...")
       )
     } else if (chat_task$status() == "success") {
       tagList(
