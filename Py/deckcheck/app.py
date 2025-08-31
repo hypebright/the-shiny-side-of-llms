@@ -5,7 +5,6 @@ import pandas as pd
 import plotly.express as px
 from dotenv import load_dotenv
 from chatlas import ChatAnthropic, interpolate_file, interpolate
-import subprocess
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import Annotated, Optional, Union
@@ -20,8 +19,9 @@ APP_DIR = Path(__file__).parent
 # Root directory of the project
 ROOT_DIR = APP_DIR.parent.parent
 
-
-# Define data structure to extract from the input
+# ======================
+# Data Structure
+# ======================
 ScoreType = Annotated[int, Field(ge=0, le=10)]
 PercentType = Annotated[float, Field(ge=0.0, le=100.0)]
 MinutesType = Annotated[int, Field(ge=0)]
@@ -84,8 +84,9 @@ class DeckAnalysis(BaseModel):
     )
 
 
-# Define a tool to calculate some metrics
-# Start with a function:
+# ======================
+# Tool definition
+# ======================
 def calculate_slide_metric(metric: str) -> Union[int, float]:
     """
     Calculates the total number of slides, percentage of slides with code blocks,
@@ -129,6 +130,9 @@ def calculate_slide_metric(metric: str) -> Union[int, float]:
     return result
 
 
+# ======================
+# Data wrangling
+# ======================
 def make_frames(d: dict):
     # meta info (top-level keys that are not eval categories)
     meta_keys = [
@@ -161,6 +165,9 @@ def make_frames(d: dict):
     return {"meta": meta, "evals": evals_df}
 
 
+# ======================
+# Tooltip helper
+# ======================
 def add_line_breaks(text, width=50):
     if not isinstance(text, str):
         return text
@@ -183,7 +190,9 @@ def add_line_breaks(text, width=50):
     return "<br>".join(lines)
 
 
+# ======================
 # Icons
+# ======================
 file_slides = """<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-file-slides-fill" viewBox="0 0 16 16">
   <path d="M7 7.78V5.22c0-.096.106-.156.19-.106l2.13 1.279a.125.125 0 0 1 0 .214l-2.13 1.28A.125.125 0 0 1 7 7.778z"/>
   <path d="M12 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M5 4h6a.5.5 0 0 1 .496.438l.5 4A.5.5 0 0 1 11.5 9h-3v2.016c.863.055 1.5.251 1.5.484 0 .276-.895.5-2 .5s-2-.224-2-.5c0-.233.637-.429 1.5-.484V9h-3a.5.5 0 0 1-.496-.562l.5-4A.5.5 0 0 1 5 4"/>
@@ -225,6 +234,9 @@ sad_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fil
   <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16M7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5m-2.715 5.933a.5.5 0 0 1-.183-.683A4.5 4.5 0 0 1 8 9.5a4.5 4.5 0 0 1 3.898 2.25.5.5 0 0 1-.866.5A3.5 3.5 0 0 0 8 10.5a3.5 3.5 0 0 0-3.032 1.75.5.5 0 0 1-.683.183M10 8c-.552 0-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5S10.552 8 10 8"/>
 </svg>"""
 
+# ======================
+# Shiny App
+# ======================
 app_ui = ui.page_fillable(
     ## General theme and styles
     ## 1. Custom CSS
@@ -283,6 +295,7 @@ app_ui = ui.page_fillable(
         ),
         ui.output_ui("results"),
     ),
+    # Bootswatch theme
     theme=shinyswatch.theme.flatly,
 )
 
@@ -291,17 +304,20 @@ def server(input, output, session):
     @ui.bind_task_button(button_id="submit")
     @reactive.extended_task
     async def quarto_task(file_path, temp_dir):
-        # Copy the uploaded file to a temporary location with a fixed name
+        # We're using an Extended Task to avoid blocking. Note that
+        # a temporary directory called within mirai will be
+        # different from the one in the "main" Shiny session. Hence,
+        # we pass a temp_dir parameter to the task and use that.
         qmd_file = Path(temp_dir) / "my-presentation.qmd"
-
         shutil.copy(file_path, qmd_file)
 
-        # Run asyncio subprocess to avoid blocking
+        # Run asyncio subprocess
         proc = await asyncio.create_subprocess_exec(
             "quarto", "render", str(qmd_file), "--to", "markdown,html"
         )
         await proc.communicate()
 
+        # Return the path to the markdown file
         return Path(temp_dir) / "my-presentation.md"
 
     @ui.bind_task_button(button_id="submit")
@@ -310,7 +326,6 @@ def server(input, output, session):
         # We're using an extended task to avoid blocking the session and
         # we start a fresh chat session each time.
         # For a feedback loop, we would use a persistent chat session.
-        # Initialise chat with Claude Sonnet 4 model
         chat = ChatAnthropic(
             model="claude-sonnet-4-20250514",
             system_prompt=system_prompt,
@@ -347,6 +362,9 @@ def server(input, output, session):
     async def run_quarto():
         if input.file() is not None:
             try:
+                # Error for testing
+                # raise ValueError("Test error")
+
                 # Get file path of the uploaded file
                 file_path = input.file()[0]["datapath"]
 
@@ -378,9 +396,15 @@ def server(input, output, session):
         # require quarto_task result to be available
         req(quarto_task.result() is not None)
         try:
+            # Error for testing
+            # raise ValueError("Test error")
+
+            # Get the Markdown file path from the complete quarto_task
             markdown_file = quarto_task.result()
+            # Read the generated Markdown file containing the slides
             markdown_content = markdown_file.read_text(encoding="utf-8")
 
+            # Define prompt file
             system_prompt_file = (
                 ROOT_DIR / "prompts" / "prompt-analyse-slides-structured-tool.md"
             )
@@ -397,6 +421,7 @@ def server(input, output, session):
                 },
             )
 
+            # Trigger the chat task with the provided inputs
             chat_task.invoke(system_prompt, markdown_content, DeckAnalysis)
 
         except Exception as e:

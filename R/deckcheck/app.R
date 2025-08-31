@@ -333,9 +333,9 @@ server <- function(input, output, session) {
         # Error for testing
         # stop("This is a test error.")
 
-        # Get the markdown file path from the completed quarto_task
+        # Get the Markdown file path from the completed quarto_task
         markdown_file <- quarto_task$result()
-        # Read the generated Markdown file containing our slides
+        # Read the generated Markdown file containing the slides
         markdown_content <- readChar(markdown_file, file.size(markdown_file))
 
         # Define prompt file
@@ -431,7 +431,6 @@ server <- function(input, output, session) {
   output$results <- renderUI({
     if (quarto_task$status() == "running") {
       div(
-        # center horizontally and vertically
         class = "text-center d-flex flex-column justify-content-center align-items-center",
         style = "height: 100%;",
         bsicons::bs_icon(
@@ -444,7 +443,6 @@ server <- function(input, output, session) {
       )
     } else if (chat_task$status() == "running") {
       div(
-        # center horizontally and vertically
         class = "text-center d-flex flex-column justify-content-center align-items-center",
         style = "height: 100%;",
         bsicons::bs_icon(
