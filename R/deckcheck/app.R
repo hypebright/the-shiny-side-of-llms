@@ -8,6 +8,9 @@ library(gdtools)
 library(purrr)
 library(dplyr)
 
+# ======================
+# Data Structure
+# ======================
 # Reusable scoring category
 type_scoring_category <- type_object(
   score = type_integer(
@@ -75,9 +78,9 @@ type_deck_analysis <- type_object(
   )
 )
 
-# Define a tool to calculate some metrics
-# Start with a function:
-
+# ======================
+# Tool definition
+# ======================
 #' Calculates the total number of slides, percentage of slides with code blocks,
 #' and percentage of slides with images in a Quarto presentation HTML file.
 #'
@@ -130,9 +133,59 @@ calculate_slide_metric <- tool(
   )
 )
 
+# ======================
+# Data wrangling
+# ======================
+#' Convert named list to tidy data frames
+#'
+#' @param named_list Named list as returned by the chat
+#' @return List of two tibbles: meta and evals
+make_frames <- function(named_list) {
+  meta <- tibble(
+    presentation_title = named_list$presentation_title,
+    total_slides = named_list$total_slides,
+    percent_with_code = named_list$percent_with_code,
+    percent_with_images = named_list$percent_with_images,
+    estimated_duration_minutes = named_list$estimated_duration_minutes,
+    tone = named_list$tone
+  )
+
+  # Evaluation sections (clarity, relevance, etc.)
+  eval_sections <- c(
+    "clarity",
+    "relevance",
+    "visual_design",
+    "engagement",
+    "pacing",
+    "structure",
+    "consistency",
+    "accessibility"
+  )
+
+  evals <- map_dfr(eval_sections, function(section) {
+    as_tibble(named_list[[section]][[1]]) %>%
+      mutate(
+        category = section,
+        .before = 1
+      )
+  })
+
+  # Final tidy data frame
+  final <- list(
+    meta = meta,
+    evals = evals
+  )
+}
+
+# ======================
+# Other helpers
+# ======================
 # Register Monteserrat font
 register_gfont("Lato")
 
+# ======================
+# Shiny App
+# ======================
 ui <- page_fillable(
   ## Options
   ## Busy indication is enabled by default for UI created with bslib (which we use here),
@@ -328,6 +381,7 @@ server <- function(input, output, session) {
     bindEvent(input$submit)
 
   observe({
+    req(quarto_task$result())
     tryCatch(
       {
         # Error for testing
@@ -392,40 +446,7 @@ server <- function(input, output, session) {
   analysis_result <- reactive({
     named_list <- chat_task$result()
 
-    meta <- tibble(
-      presentation_title = named_list$presentation_title,
-      total_slides = named_list$total_slides,
-      percent_with_code = named_list$percent_with_code,
-      percent_with_images = named_list$percent_with_images,
-      estimated_duration_minutes = named_list$estimated_duration_minutes,
-      tone = named_list$tone
-    )
-
-    # Evaluation sections (clarity, relevance, etc.)
-    eval_sections <- c(
-      "clarity",
-      "relevance",
-      "visual_design",
-      "engagement",
-      "pacing",
-      "structure",
-      "consistency",
-      "accessibility"
-    )
-
-    evals <- map_dfr(eval_sections, function(section) {
-      as_tibble(named_list[[section]][[1]]) %>%
-        mutate(
-          category = section,
-          .before = 1
-        )
-    })
-
-    # Final tidy data frame
-    final <- list(
-      meta = meta,
-      evals = evals
-    )
+    make_frames(named_list)
   })
 
   output$results <- renderUI({
@@ -451,7 +472,7 @@ server <- function(input, output, session) {
           class = "text-primary bounce"
         ),
         br(),
-        p("The LLM is doing it's magic...")
+        p("The LLM is doing its magic...")
       )
     } else if (chat_task$status() == "success") {
       tagList(
