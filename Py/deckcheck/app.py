@@ -255,16 +255,17 @@ app_ui = ui.page_fillable(
             animation: bounce 2s infinite;
         }
         @keyframes bounce {
-        0%, 100% {
-            transform: translateY(0);
-        }
-        50% {
-            transform: translateY(-20px);
-        }
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
         }
     """),
     ui.layout_sidebar(
         ui.sidebar(
+            ## Sidebar content
             ui.div(
                 ui.p(ui.strong("Hey, I am DeckCheck!")),
                 ui.p(
@@ -299,6 +300,7 @@ app_ui = ui.page_fillable(
             ),
             width=400,
         ),
+        ## Main content
         ui.output_ui("results"),
     ),
     # Bootswatch theme
