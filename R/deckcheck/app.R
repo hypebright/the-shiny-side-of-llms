@@ -197,10 +197,6 @@ ui <- page_fillable(
   ## 2. Custom CSS
   tags$style(HTML(
     "
-    #suggested_improvements table {
-      font-family: 'Lato', sans-serif;
-      font-size: 16px;
-    }
     .bounce {
       animation: bounce 2s infinite;
     }

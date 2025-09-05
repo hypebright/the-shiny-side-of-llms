@@ -247,10 +247,6 @@ app_ui = ui.page_fillable(
     ## General theme and styles
     ## 1. Custom CSS
     ui.tags.style("""
-        #suggested_improvements table {
-            font-family: 'Lato', sans-serif;
-            font-size: 11px;
-        }
         .bounce {
             animation: bounce 2s infinite;
         }
