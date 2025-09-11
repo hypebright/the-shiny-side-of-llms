@@ -115,7 +115,7 @@ chat.set_model_params(
 # Start conversation with the chat
 # Since all the instructions are in the system prompt, we can just
 # provide the Markdown content as a message
-chat.extract_data(
+chat.chat_structured(
     interpolate("Here are the slides in Markdown: {{ markdown_content }}"),
     data_model=DeckAnalysis,
 )

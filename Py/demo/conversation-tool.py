@@ -169,7 +169,7 @@ chat.chat(
 )
 
 # Task 2: structured chat to further analyse the slides
-chat.extract_data(
+chat.chat_structured(
     "Execute Task 2 (suggestions)",
     data_model=DeckAnalysis,
 )

@@ -354,7 +354,7 @@ def server(input, output, session):
         print(chat_res1)
 
         # Task 2: structured chat to further analyse the slides
-        chat_res2 = await chat.extract_data_async(
+        chat_res2 = await chat.chat_structured_async(
             "Execute Task 2 (suggestions)",
             data_model=DeckAnalysis,
         )
